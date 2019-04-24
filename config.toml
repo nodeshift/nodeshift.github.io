@@ -1,7 +1,0 @@
-baseURL = "/"
-languageCode = "en-us"
-title = "Nodeshift"
-theme = "github-project-landing-page"
-
-[params]
-    description = "Node.js from Red Hat"
