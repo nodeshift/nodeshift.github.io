@@ -1,0 +1,6 @@
+[submodule "themes/github-project-landing-page"]
+	path = themes/github-project-landing-page
+	url = https://github.com/nsomar/github-project-landing-page.git
+[submodule "themes/hello-friend"]
+	path = themes/hello-friend
+	url = https://github.com/panr/hugo-theme-hello-friend.git
