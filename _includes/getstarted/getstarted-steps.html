@@ -1,0 +1,65 @@
+<div class="component-wrapper two-column-content-band">
+  <div class="width-12-12">
+    <div class="grid-wrapper">
+      <div class="width-3-12 width-12-12-m">
+         <H2>Prerequests</h2>
+       </div>
+      <div class="width-9-12 width-12-12-m stepbodyborder">
+          <p>Before we start, there are some required prerequisites. You need to have Node 8.x and npm 5.2 or greater installed. npm comes with the official node distribution, so if you install Node from Nodejs.org, you should be good.</p>
+          <p>You’ll also need access to an OpenShift environment or the Red Hat Container Development Kit (CDK) minishift environment. For this example, I’ll be using minishift (instructions on getting minishift up and running).</p>
+          <p>For my local minishift, I start it with this command:</p>
+          <code>$ minishift start —memory=6144 —vm-driver virtualbox</code>
+          <p>You also need to be logged in to whatever OpenShift cluster you are using (OpenShift or minishift) using <code>oc Login</code></p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="component-wrapper two-column-content-band">
+  <div class="width-12-12">
+    <div class="grid-wrapper">
+      <div class="width-3-12 width-12-12-m">
+         <span class="step-italic">Step</span><span class="step-numeral">2</span>
+       </div>
+      <div class="width-9-12 width-12-12-m stepbodyborder">
+        <h2>Generate an Express App</h2>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec lobortis turpis. Suspendisse sed quam est. Sed quis mi volutpat, consectetur urna non, commodo quam. Nunc vel est varius, porta justo vel, congue erat. Maecenas interdum sollicitudin ultrices. Nullam fermentum nec dui ac commodo</p>
+          <code>$ npx express-generator .</code>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec lobortis turpis. Suspendisse sed quam est. Sed quis mi volutpat, consectetur urna non, commodo quam. Nunc vel est varius, porta justo vel, congue erat. Maecenas interdum sollicitudin ultrices. Nullam fermentum nec dui ac commodo</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="component-wrapper two-column-content-band">
+  <div class="width-12-12">
+    <div class="grid-wrapper">
+      <div class="width-3-12 width-12-12-m">
+         <span class="step-italic">Step</span><span class="step-numeral">3</span>
+       </div>
+      <div class="width-9-12 width-12-12-m stepbodyborder">
+          <h2>Update the package.json File</h2>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec lobortis turpis. Suspendisse sed quam est. Sed quis mi volutpat, consectetur urna non, commodo quam. Nunc vel est varius, porta justo vel, congue erat. Maecenas interdum sollicitudin ultrices. Nullam fermentum nec dui ac commodo</p>
+          <code>$ npx json -I -f package.json -e ‘this.scripts.start=“PORT=8080 node ./bin/www”’</code>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec lobortis turpis. Suspendisse sed quam est. Sed quis mi volutpat, consectetur urna non, commodo quam. Nunc vel est varius, porta justo vel, congue erat. Maecenas interdum sollicitudin ultrices. Nullam fermentum nec dui ac commodo</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="component-wrapper two-column-content-band">
+  <div class="width-12-12">
+    <div class="grid-wrapper">
+      <div class="width-3-12 width-12-12-m">
+         <span class="step-italic">Step</span><span class="step-numeral">4</span>
+       </div>
+      <div class="width-9-12 width-12-12-m stepbodyborder">
+        <h2>Deploy the Application to OpenShift</h2>
+          <p>Before we start, there are some required prerequisites. You need to have Node 8.x and npm 5.2 or greater installed. npm comes with the official node distribution, so if you install Node from Nodejs.org, you should be good.</p>
+          <p>You’ll also need access to an OpenShift environment or the Red Hat Container Development Kit (CDK) minishift environment. For this example, I’ll be using minishift (instructions on getting minishift up and running).</p>
+          <p>For my local minishift, I start it with this command:</p>
+          <code>$ npx nodeshift —strictSSL=false —expose</code>
+          <p>You also need to be logged in to whatever OpenShift cluster you are using (OpenShift or minishift) using <code>oc Login</code></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+

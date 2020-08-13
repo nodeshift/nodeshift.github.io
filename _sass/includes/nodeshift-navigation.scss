@@ -1,0 +1,120 @@
+div.nav-content {
+  background-color: $dark-grey;
+  }
+
+.navigation {
+  padding-top: .5rem;
+  height:100px;
+}
+
+div.nav-wrapper {
+  padding: 0 13rem;
+  @media screen and (max-width: 1170px) { padding: 0 6rem; }
+  @media screen and (max-width: 768px) {
+    padding: 0 2rem;
+  }
+}
+
+.navigation .logo-wrapper {
+  padding-top: 0;
+
+  .project-logo {
+    /* max-width: 180px; */
+    margin-top: 1.5rem;
+  }
+}
+
+nav ul li {
+  a.active, 
+  a.active:hover, 
+  a.active:focus, 
+  a.active:visited {
+    font-weight: 700;
+    color: $white;
+    @media screen and (max-width: 1024px) {
+      border: none;
+    }
+  }
+}
+
+nav .nav-mobile {
+ /* top: 3.75rem; */
+}
+
+nav .nav-mobile,
+nav ul.nav-list li {
+  a {
+    font-family: 'Barlow', sans-serif;
+    font-size: 1.35rem;
+    text-transform: uppercase;
+    color: $green;
+    &:hover, &:focused, &:visited {
+      color: $link-visited;
+    }
+  }
+  a.button-cta {
+    text-transform: uppercase;
+    color: $white;
+    line-height: 2.5;
+    padding: 2px 10px 0 10px;
+  }
+}
+
+#nav-toggle {
+  span,
+  span:before,
+  span:after {
+    background: $green;
+  }
+}
+
+@media only screen and (max-width: $nav-breakpoint) {
+  .navigation {
+    padding-top: 2rem;
+  }
+  .nav-mobile {
+    display: block;
+    z-index: 1;
+  }
+  .logo-wrapper {
+    display: block;
+    margin: 0 auto;
+    padding-top: 0;
+  }
+  nav {
+    width: 16rem;
+    padding-top: 0;
+    .nav-list {
+      background-color: $teal;
+      position: relative;
+      left: 35px;
+      top: -80px;
+      padding: 2.5rem 1.5rem 1.5rem 1.5rem;
+      @media screen and (max-width: 468px) {
+        left: 50px;
+      }
+      .button-cta.secondary {
+        display: none;
+      }
+    }
+    ul {
+      display: none;
+      li {
+        float: none;
+        float: none;
+        margin: .5rem 0;
+        a,
+        a:visited,
+        a:hover {
+          line-height: 1.5;
+          color: $green;
+          &.active {
+            color: $white;
+            font-weight: 700;
+          }
+        }
+        ul li a { padding-left: 30px; color: $white; }
+      }
+    }
+  }
+}
