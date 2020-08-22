@@ -1,6 +1,7 @@
 lholmquist:
   name: "Lucas Holmquist"
   email: "lholmqui@redhat.com"
+  emailhash: 4120ab1fe80040d03eb790c2efafadc9
   job_title: "Sr. Software Engineer"
   twitter: "sienaluke"
   bio: "Sr. Software Engineer at Red Hat.  Red Hat Runtimes Node.js Lead"
