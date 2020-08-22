@@ -1,14 +1,6 @@
-tsmith:
-  name: "Tim Smith"
-  email: "tsmith@email.com"
-  emailhash: "55acsfsfg7f29105b0"
-  job_title: ""
-  twitter: "tsmith"
-  bio: "Lorem ipsum dolor sit amet, eos posse ipsum legendos id. Ad duo assum augue democritum."
-swoods:
-  name: "Sam Woods"
-  email: "swoods@email.com"
-  emailhash: "55acsfsfg7f29105b0"
-  job_title: ""
-  twitter: "swoods"
-  bio: "Lorem ipsum dolor sit amet, eos posse ipsum legendos id. Ad duo assum augue democritum."
+lholmquist:
+  name: "Lucas Holmquist"
+  email: "lholmqui@redhat.com"
+  job_title: "Sr. Software Engineer"
+  twitter: "sienaluke"
+  bio: "Sr. Software Engineer at Red Hat.  Red Hat Runtimes Node.js Lead"
