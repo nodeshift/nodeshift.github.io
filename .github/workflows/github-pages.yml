@@ -3,7 +3,7 @@ name: Build and deploy Jekyll site to GitHub Pages
 on:
   push:
     branches:
-      - f-in-around-new-site
+      - master
 
 jobs:
   github-pages:
