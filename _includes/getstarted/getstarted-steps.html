@@ -2,14 +2,29 @@
   <div class="width-12-12">
     <div class="grid-wrapper">
       <div class="width-3-12 width-12-12-m">
-         <H2>Prerequests</h2>
+         <H2>Introduction</h2>
        </div>
       <div class="width-9-12 width-12-12-m stepbodyborder">
-          <p>Before we start, there are some required prerequisites. You need to have Node 8.x and npm 5.2 or greater installed. npm comes with the official node distribution, so if you install Node from Nodejs.org, you should be good.</p>
-          <p>You’ll also need access to an OpenShift environment or the Red Hat Container Development Kit (CDK) minishift environment. For this example, I’ll be using minishift (instructions on getting minishift up and running).</p>
-          <p>For my local minishift, I start it with this command:</p>
-          <code>$ minishift start —memory=6144 —vm-driver virtualbox</code>
-          <p>You also need to be logged in to whatever OpenShift cluster you are using (OpenShift or minishift) using <code>oc Login</code></p>
+        <p>This guide we will show how easy it is to deploy an <a href="https://expressjs.com/" target="_blank">Express.js Application</a> to Openshift in just a couple steps using the Nodeshift CLI</p>
+
+        <p>To run the Node.js example, this guide assumes that you have a recent version of Node.js installed.  Long Term Support(LTS) and Current Versions can be downloaded from the official <a href="https://nodejs.org">Node.js Organization Site</a>.  These downloads also comes with current versions of npm, which is the package manager for Node.js</p>
+
+        <p>This guide also mentions a cli tool called <code>npx</code>, this also comes standard with recent versions of npm.  To learn more about these tools, see the links in the appendix section at the end of this guide.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="component-wrapper two-column-content-band">
+  <div class="width-12-12">
+    <div class="grid-wrapper">
+      <div class="width-3-12 width-12-12-m">
+         <span class="step-italic">Step</span><span class="step-numeral">1</span>
+       </div>
+      <div class="width-9-12 width-12-12-m stepbodyborder">
+        <h2>Generate an Express.js App</h2>
+          <p>Generating a new Express.js application can be done fairly easily with the <a href="https://expressjs.com/en/starter/generator.html" target="_blank">Express.js Generator</a>.  Using the npx command, the generator doesn't even need to be installed, but can be run like this:</p>
+          <code>$ npx express-generator .</code>
+          <p>This will generate a basic Express.js application in the current directory. If you want to see the application in action locally, be sure to run <code>npm install</code> and then <code>npm run start</code>.  In the next step we will be deploying this to an Openshift instance, so running locally is not necessary.</p>
       </div>
     </div>
   </div>
@@ -21,10 +36,12 @@
          <span class="step-italic">Step</span><span class="step-numeral">2</span>
        </div>
       <div class="width-9-12 width-12-12-m stepbodyborder">
-        <h2>Generate an Express App</h2>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec lobortis turpis. Suspendisse sed quam est. Sed quis mi volutpat, consectetur urna non, commodo quam. Nunc vel est varius, porta justo vel, congue erat. Maecenas interdum sollicitudin ultrices. Nullam fermentum nec dui ac commodo</p>
-          <code>$ npx express-generator .</code>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec lobortis turpis. Suspendisse sed quam est. Sed quis mi volutpat, consectetur urna non, commodo quam. Nunc vel est varius, porta justo vel, congue erat. Maecenas interdum sollicitudin ultrices. Nullam fermentum nec dui ac commodo</p>
+          <h2>Deploy the Application to Openshift</h2>
+          <p>With the application generated, it can now be deployed to an Openshift Cluster* with only one other command using the Nodeshift CLI tool.  Again,  npx is used so nothing needs to be installed globally</p>
+          <code>$ npx nodeshift --deploy.port 3000 --expose</code>
+          <p>While the nodeshift cli has other commands, the default command is to perform an <a href="https://github.com/openshift/source-to-image#overview"> s2i deployment</a>.   The deploy port is specificed since by default, express will start applications on port 3000 and the expose flag is used to create a Route, so the application is accessible outside the Openshift Cluster</p>
+
+          <p>* This guide assumes access to an Openshift Cluster, see the appendix section below for links on getting access to an Openshift Cluster</p>
       </div>
     </div>
   </div>
@@ -36,10 +53,31 @@
          <span class="step-italic">Step</span><span class="step-numeral">3</span>
        </div>
       <div class="width-9-12 width-12-12-m stepbodyborder">
-          <h2>Update the package.json File</h2>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec lobortis turpis. Suspendisse sed quam est. Sed quis mi volutpat, consectetur urna non, commodo quam. Nunc vel est varius, porta justo vel, congue erat. Maecenas interdum sollicitudin ultrices. Nullam fermentum nec dui ac commodo</p>
-          <code>$ npx json -I -f package.json -e ‘this.scripts.start=“PORT=8080 node ./bin/www”’</code>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec lobortis turpis. Suspendisse sed quam est. Sed quis mi volutpat, consectetur urna non, commodo quam. Nunc vel est varius, porta justo vel, congue erat. Maecenas interdum sollicitudin ultrices. Nullam fermentum nec dui ac commodo</p>
+          <h2>Access your application</h2>
+          <p>Once the application deployed, there are a couple of ways to interact with it.</p>
+          <p>
+            1.  Using <code>curl</code> to access the application with something like this:
+
+            <code>
+              $ http://express-generate-express-tutorial.apps-crc.testing/
+            </code>
+
+            This will return some HTML code, that looks pretty ugly in a terminal
+
+            Note, that the url will be different based on the Openshift Cluster and namespace used.
+          </p>
+          <p>
+            2.  Another way is to use the Openshift Web UI to click on the Route.  A deployed Application might look something like this:
+          </p>
+          <p>
+            <img src="../assets/images/getting_started/express-generator-1.png" alt="Openshift Web Console showing a running pod">
+          </p>
+          <p>
+            Clicking on the top right icon of the circle(this is the running application inside a Kubernetes Pod) will then open up the "Welcome To Express" Web Page, which will look like this:
+          </p>
+          <p>
+            <img src="../assets/images/getting_started/express-web-page.png" alt="Welcome to Express">
+          </p>
       </div>
     </div>
   </div>
@@ -48,7 +86,7 @@
   <div class="width-12-12">
     <div class="grid-wrapper">
       <div class="width-3-12 width-12-12-m">
-         <span class="step-italic">Step</span><span class="step-numeral">4</span>
+         <span class="step-italic">Appendix</span><span class="step-numeral"></span>
        </div>
       <div class="width-9-12 width-12-12-m stepbodyborder">
         <h2>Deploy the Application to OpenShift</h2>
