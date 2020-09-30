@@ -7,7 +7,7 @@
       <div class="width-9-12 width-12-12-m stepbodyborder">
         <p>This guide we will show how easy it is to deploy an <a href="https://expressjs.com/" target="_blank">Express.js Application</a> to Openshift in just a couple steps using the Nodeshift CLI</p>
 
-        <p>To run the Node.js example, this guide assumes that you have a recent version of Node.js installed.  Long Term Support(LTS) and Current Versions can be downloaded from the official <a href="https://nodejs.org">Node.js Organization Site</a>.  These downloads also comes with current versions of npm, which is the package manager for Node.js</p>
+        <p>To run the Node.js example, this guide assumes that you have a recent version of Node.js installed.  Long Term Support(LTS) and Current Versions can be downloaded from the official <a href="https://nodejs.org" target="_blank">Node.js Organization Site</a>.  These downloads also comes with current versions of npm, which is the package manager for Node.js</p>
 
         <p>This guide also mentions a cli tool called <code>npx</code>, this also comes standard with recent versions of npm.  To learn more about these tools, see the links in the appendix section at the end of this guide.</p>
       </div>
@@ -39,7 +39,7 @@
           <h2>Deploy the Application to Openshift</h2>
           <p>With the application generated, it can now be deployed to an Openshift Cluster* with only one other command using the Nodeshift CLI tool.  Again,  npx is used so nothing needs to be installed globally</p>
           <code>$ npx nodeshift --deploy.port 3000 --expose</code>
-          <p>While the nodeshift cli has other commands, the default command is to perform an <a href="https://github.com/openshift/source-to-image#overview"> s2i deployment</a>.   The deploy port is specificed since by default, express will start applications on port 3000 and the expose flag is used to create a Route, so the application is accessible outside the Openshift Cluster</p>
+          <p>While the nodeshift cli has other commands, ttarget="_blankhe default command is to perform an <a href="https://github.com/openshift/source-to-image#overview" target="_blank"> s2i deployment</a>.   The deploy port is specificed since by default, express will start applications on port 3000 and the expose flag is used to create a Route, so the application is accessible outside the Openshift Cluster</p>
 
           <p>* This guide assumes access to an Openshift Cluster, see the appendix section below for links on getting access to an Openshift Cluster</p>
       </div>
@@ -56,18 +56,7 @@
           <h2>Access your application</h2>
           <p>Once the application deployed, there are a couple of ways to interact with it.</p>
           <p>
-            1.  Using <code>curl</code> to access the application with something like this:
-
-            <code>
-              $ http://express-generate-express-tutorial.apps-crc.testing/
-            </code>
-
-            This will return some HTML code, that looks pretty ugly in a terminal
-
-            Note, that the url will be different based on the Openshift Cluster and namespace used.
-          </p>
-          <p>
-            2.  Another way is to use the Openshift Web UI to click on the Route.  A deployed Application might look something like this:
+            1.  Using Openshift Developer Topology view, it is easy to see our running Application pod.  This might looks something like this:
           </p>
           <p>
             <img src="../assets/images/getting_started/express-generator-1.png" alt="Openshift Web Console showing a running pod">
@@ -77,6 +66,20 @@
           </p>
           <p>
             <img src="../assets/images/getting_started/express-web-page.png" alt="Welcome to Express">
+          </p>
+
+          <p>
+            2.  Another, less UI friendly way, is to use <code>curl</code> to access the applications Route which might look like this:
+            <p>
+              <code>
+                $ curl http://express-generate-express-tutorial.apps-crc.testing/
+              </code>
+            </p>
+
+
+            This will return some HTML code, that looks pretty ugly in a terminal
+
+            Note, that the url will be different based on the Openshift Cluster and namespace used.
           </p>
       </div>
     </div>
@@ -89,12 +92,28 @@
          <span class="step-italic">Appendix</span><span class="step-numeral"></span>
        </div>
       <div class="width-9-12 width-12-12-m stepbodyborder">
-        <h2>Deploy the Application to OpenShift</h2>
-          <p>Before we start, there are some required prerequisites. You need to have Node 8.x and npm 5.2 or greater installed. npm comes with the official node distribution, so if you install Node from Nodejs.org, you should be good.</p>
-          <p>You’ll also need access to an OpenShift environment or the Red Hat Container Development Kit (CDK) minishift environment. For this example, I’ll be using minishift (instructions on getting minishift up and running).</p>
-          <p>For my local minishift, I start it with this command:</p>
-          <code>$ npx nodeshift —strictSSL=false —expose</code>
-          <p>You also need to be logged in to whatever OpenShift cluster you are using (OpenShift or minishift) using <code>oc Login</code></p>
+        <h2>Extra Resources</h2>
+          <p>
+            <h3>Openshift</h3>
+            <p>If you do not already have access to an Openshift Cluster, you can start a local copy by using <a href="https://developers.redhat.com/products/codeready-containers/overview" target="_blank" >Code Ready Containers.</a>.  Note that you will need to create a Red Hat Developers login to download.</p>
+          </p>
+
+          <p>
+            <h3>Node.js</h3>
+            <p>
+              Node.js is an open-source, cross-platform, JavaScript runtime environment. It executes JavaScript code outside of a browser.  For more information on using Node.js, <a href="https://nodejs.org" target="_blank">see the Node.js Website</a>.
+            </p>
+          </p>
+
+          <p>
+            <h3>npm</h3>
+            <p>npm is the world’s largest software registry. Open source developers from every continent use npm to share and borrow packages, and many organizations use npm to manage private development as well.  npm's <a href="https://www.npmjs.com/" target="_blank">website is here</a> </p>
+          </p>
+
+          <p>
+            <h3>npx</h3>
+            <p>npx is a tool intended to help round out the experience of using packages from the npm registry — the same way npm makes it super easy to install and manage dependencies hosted on the registry, npx makes it easy to use CLI tools and other executables hosted on the registry.   npx is included with npm and is installed with the basic Node.js installer</p>
+          </p>
       </div>
     </div>
   </div>
