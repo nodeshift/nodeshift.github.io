@@ -1,0 +1,66 @@
+.homepage-hero-band {
+  background: rgb(8,88,112); /* Old browsers */
+  background: -moz-linear-gradient(-90deg,  rgba(0,42,47,1) 0%, rgba(0,42,47,1) 50%, rgba(0,89,102,1) 100%); /* FF3.6-15 */
+  background: -webkit-linear-gradient(-90deg,  rgba(0,42,47,1) 0%,rgba(0,42,47,1) 50%,rgba(0,89,102,1) 100%); /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(180deg,  rgba(0,42,47,1) 0%,rgba(0,42,47,1) 50%,rgba(0,89,102,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#085870', endColorstr='#97d4e8',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+  margin: 0rem -13rem;
+  @media screen and (max-width: 1170px) {
+    margin: 0 -6rem;
+  }
+  @media screen and (max-width: 480px) {
+    margin: 0 -2rem;
+  }
+  .wrapper {
+    background-image: url($baseurl + '/assets/images/homepage/nodeshift_hero_bkg.svg');
+    background-repeat: repeat-x;
+    background-size: auto;
+    background-position: left;
+    padding: 6rem 13rem 8rem 13rem;
+    @media screen and (max-width: 1024px) { background-size: cover; }
+    @media screen and (max-width: 1170px) {
+      padding: 4rem 6rem 6rem 6rem;
+    }
+    @media screen and (max-width: 480px) {
+      padding: 4rem 2rem 6rem 2rem;
+    }
+  }
+
+  h1 {
+    color: $white;
+    font-size: 2.75rem;
+    line-height: 3rem;
+    font-weight: 900;
+
+  }
+
+  h2 {
+    color: $green;
+    font-weight: 100;
+    text-transform: uppercase;
+
+  }
+
+
+  h1 {
+    @media screen and (min-width: 768px) {
+      font-size: 3.75rem;
+      line-height: 4rem;
+    }
+  }
+
+  h2 {
+    font-size: 2rem;
+    line-height: 2.5rem;
+    
+
+  }
+
+  a.button-cta,
+  a.button-cta:hover,
+  a.button-cta:focus,
+  a.button-cta:visited {
+    border-color: $white;
+    margin-left: 0;
+  }
+}
