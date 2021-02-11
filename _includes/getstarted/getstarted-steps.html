@@ -39,7 +39,7 @@
           <h2>Deploy the Application to Openshift</h2>
           <p>With the application generated, it can now be deployed to an Openshift Cluster* with only one other command using the Nodeshift CLI tool.  Again,  npx is used so nothing needs to be installed globally</p>
           <code>$ npx nodeshift --deploy.port 3000 --expose</code>
-          <p>While the nodeshift cli has other commands, ttarget="_blankhe default command is to perform an <a href="https://github.com/openshift/source-to-image#overview" target="_blank"> s2i deployment</a>.   The deploy port is specificed since by default, express will start applications on port 3000 and the expose flag is used to create a Route, so the application is accessible outside the Openshift Cluster</p>
+          <p>While the nodeshift cli has other commands, the default command is to perform an <a href="https://github.com/openshift/source-to-image#overview" target="_blank"> s2i deployment</a>.   The deploy port is specificed since by default, express will start applications on port 3000 and the expose flag is used to create a Route, so the application is accessible outside the Openshift Cluster</p>
 
           <p>* This guide assumes access to an Openshift Cluster, see the appendix section below for links on getting access to an Openshift Cluster</p>
       </div>
