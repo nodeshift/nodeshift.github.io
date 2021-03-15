@@ -1,0 +1,979 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.7">Jekyll</generator><link href="https://nodeshift.dev//feed.xml" rel="self" type="application/atom+xml" /><link href="https://nodeshift.dev//" rel="alternate" type="text/html" /><updated>2021-03-15T20:00:46+00:00</updated><id>https://nodeshift.dev//feed.xml</id><title type="html">NodeShift</title><subtitle>GET YOUR NODE.JS ON OPENSHIFT - Simplify your development of Node.js applications on Kubernetes and Openshift with the Nodeshift Project.</subtitle><entry><title type="html">Deploying serverless Node.js applications on Red Hat OpenShift, Part 1</title><link href="https://nodeshift.dev//blog/serverless-node-apps-knative-serving/" rel="alternate" type="text/html" title="Deploying serverless Node.js applications on Red Hat OpenShift, Part 1" /><published>2020-09-15T00:00:00+00:00</published><updated>2020-09-15T00:00:00+00:00</updated><id>https://nodeshift.dev//blog/serverless-node-apps-knative-serving</id><content type="html" xml:base="https://nodeshift.dev//blog/serverless-node-apps-knative-serving/">&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/topics/serverless-architecture&quot;&gt;Red Hat OpenShift Serverless&lt;/a&gt; recently became GA, and with it came new options for application deployment. This article introduces one of those new options, &lt;a href=&quot;https://developers.redhat.com/topics/serverless-architecture&quot;&gt;Knative Serving&lt;/a&gt;. I provide an overview of OpenShift Serverless and Knative Serving, then show you how to deploy a &lt;a href=&quot;https://developers.redhat.com/blog/category/node-js/&quot;&gt;Node.js application&lt;/a&gt; as a Knative Serving service.&lt;/p&gt;
+&lt;h2&gt;What is OpenShift Serverless?&lt;/h2&gt;
+&lt;p&gt;According to the &lt;a href=&quot;https://www.openshift.com/blog/openshift-serverless-now-ga&quot;&gt;OpenShift Serverless GA release&lt;/a&gt;:&lt;/p&gt;
+&lt;blockquote&gt;&lt;i&gt;OpenShift Serverless enables developers to build what they want, when they want, with whatever tools and languages they need. Developers can quickly get their applications up and deployed using serverless compute, and they won't have to build and maintain larger container images to do so.&lt;/i&gt;&lt;/blockquote&gt;
+&lt;p&gt;OpenShift Serverless is based on the &lt;a href=&quot;https://knative.dev&quot;&gt;Knative&lt;/a&gt; open source &lt;a href=&quot;https://developers.redhat.com/topics/kubernetes&quot;&gt;Kubernetes&lt;/a&gt; serverless project. While it has a few different parts, we will focus on deploying a serverless Node.js application as a Knative Serving service.&lt;/p&gt;
+
+&lt;!--more--&gt;
+&lt;h2&gt;Knative Serving&lt;/h2&gt;
+&lt;p&gt;So, what is Knative Serving? The official OpenShift documentation has a &lt;a href=&quot;https://docs.openshift.com/container-platform/4.5/serverless/serverless-getting-started.html&quot;&gt;buzzword-filled section about it&lt;/a&gt;, but we are most interested in the ability to scale to zero.&lt;/p&gt;
+
+&lt;p&gt;Applications running on OpenShift and Kubernetes run inside a &lt;a href=&quot;https://developers.redhat.com/topics/containers/&quot;&gt;container&lt;/a&gt; or &lt;i&gt;pod&lt;/i&gt;. An OpenShift pod needs to be &lt;em&gt;up&lt;/em&gt; if we want users to be able to access our application. A containerized application deployed as a Knative Serving service can be &lt;em&gt;off&lt;/em&gt; until a request comes in—that is what we mean by “scale to zero.” When a request comes in, the application starts and begins receiving requests. Knative orchestrates all of this.&lt;/p&gt;
+&lt;h2&gt;Getting started with Knative Serving&lt;/h2&gt;
+&lt;p&gt;If you want to follow along with the example, you will need to have OpenShift Serverless installed on your OpenShift cluster. The OpenShift Serverless documentation has instructions for &lt;a href=&quot;https://docs.openshift.com/container-platform/4.5/serverless/installing_serverless/installing-openshift-serverless.html&quot;&gt;setting up OpenShift Serverless&lt;/a&gt;, and for &lt;a href=&quot;https://docs.openshift.com/container-platform/4.5/serverless/installing_serverless/installing-knative-serving.html&quot;&gt;setting up Knative Serving&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;For local development, I use &lt;a href=&quot;https://developers.redhat.com/products/codeready-containers/overview&quot;&gt;Red Hat CodeReady Containers&lt;/a&gt; (CRC) to run OpenShift locally. Note that CRC with OpenShift Serverless installed can be a little memory intensive.&lt;/p&gt;
+&lt;h3&gt;Deploying the Node.js application&lt;/h3&gt;
+&lt;p&gt;The example in the &lt;a href=&quot;https://docs.openshift.com/container-platform/4.3/applications/application_life_cycle_management/odc-creating-applications-using-developer-perspective.html&quot;&gt;OpenShift documentation&lt;/a&gt; shows how to use a Git repository, hosted on GitHub, to deploy an application as a Knative Serving service. That’s fine, but if I’m in development and coding on my laptop, I don’t want to have to push my changes to GitHub just to see my application running.&lt;/p&gt;
+
+&lt;p&gt;Another option is to use an already built image to create a Knative Serving service. The YAML for that service might look something like this:&lt;/p&gt;
+&lt;pre&gt;apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hello
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - image: docker.io/openshift/hello-openshift
+          env:
+            - name: RESPONSE
+              value: &quot;Hello Serverless!&quot;
+&lt;/pre&gt;
+&lt;p&gt;But again, this example shows an image being hosted on Docker Hub, which brings up the same predicament as deploying from GitHub.&lt;/p&gt;
+
+&lt;p&gt;For local development, I prefer using the Nodeshift module. I’ve &lt;a href=&quot;https://developers.redhat.com/blog/2019/08/30/easily-deploy-node-js-applications-to-red-hat-openshift-using-nodeshift/&quot;&gt;introduced Nodeshift&lt;/a&gt; elsewhere, so I won’t write much about it here.&lt;/p&gt;
+&lt;h3&gt;The Node.js example application&lt;/h3&gt;
+&lt;p&gt;For this example, I’ll use an application that I’ve used before, a basic &lt;a href=&quot;https://github.com/nodeshift-starters/nodejs-rest-http&quot;&gt;REST application&lt;/a&gt; that is built with &lt;a href=&quot;https://expressjs.com&quot;&gt;Express.js&lt;/a&gt;. As a refresher, the Express.js application has an input form that takes a name and sends it to a REST endpoint, which generates a greeting. When you pass in a name, it is appended to the greeting and sent back. To see the application running locally, enter the following command:&lt;/p&gt;
+&lt;pre&gt;$ npm install &amp;amp;&amp;amp; npm start
+&lt;/pre&gt;
+&lt;p&gt;To deploy the Node.js application as a Knative service, we only have to call Nodeshift with the experimental &lt;code&gt;--knative&lt;/code&gt; flag. The command would look something like this:&lt;/p&gt;
+&lt;pre&gt;$ npx nodeshift --knative
+&lt;/pre&gt;
+&lt;p&gt;This command archives our source code and sends it to OpenShift, where a Source-to-Image (S2I) build results in an &lt;code&gt;ImageStream&lt;/code&gt;. This is all standard Nodeshift stuff. Once the build has completed, Nodeshift creates a Knative service, which uses the &lt;code&gt;ImageStream&lt;/code&gt; we’ve just built as its input. This procedure is similar to pulling an image from Docker Hub, but in this case, the image is stored in OpenShift’s internal registry.&lt;/p&gt;
+&lt;h3&gt;Run the application&lt;/h3&gt;
+&lt;p&gt;We could use &lt;code&gt;oc&lt;/code&gt; commands to see that our application is running, but it’s easier to understand what is happening with something more visual. Let’s use the OpenShift web console’s new Topology view, as shown below&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;wp-image-737647 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2020/06/crc-nodejs-serverless-1024x522.png&quot; alt=&quot;A screenshot of the serverless Node.js application in the OpenShift dashboard's Topology view.&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The application is deployed as a Knative service. Most likely, the blue circle (which indicates that a pod is running successfully) is not filled. Our app is currently scaled to zero and waiting for a request to come in before it starts up.&lt;/p&gt;
+
+&lt;p&gt;Clicking on the link icon in the top-right corner of the application opens it. This is the first time that we are accessing the app, so it takes a few seconds to load. Our application is now starting up. It’s a basic Express.js application, so it starts quickly, as you can see below&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;wp-image-737657 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2020/06/nodejs-serverless-applicaiton-1024x515.png&quot; alt=&quot;A screenshot of the Express.js application displayed in browser.&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The application in the Topology view now has that familiar blue circle.&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;wp-image-737667 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2020/06/crc-nodejs-serverless-scaled-1024x526.png&quot; alt=&quot;A screenshot of the OpenShift Topology view showing the application now scaled up.&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;By default, after 300 seconds (5 minutes), the running pod terminates and scales back to zero. The next time that you access the application, the startup cycle will happen again.&lt;/p&gt;
+&lt;h2&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;In this article, I’ve shown you a small part of what OpenShift Serverless can do. In future articles, we’ll look at more features and how they relate to Node.js. This article focused on deploying a Node.js app as a Knative Serving service, but you might have noticed that Knative and OpenShift Serverless don’t care what type of application you use. In a future article, I’ll discuss the things that you should consider when creating a Node.js application to be deployed as a serverless application.&lt;/p&gt;</content><author><name>Lucas Holmquist</name><email>lholmqui@redhat.com</email></author><category term="Openshift" /><category term="Nodeshift" /><category term="Serverless" /><category term="Knative" /><summary type="html">Red Hat OpenShift Serverless recently became GA, and with it came new options for application deployment. This article introduces one of those new options, Knative Serving. I provide an overview of OpenShift Serverless and Knative Serving, then show you how to deploy a Node.js application as a Knative Serving service. What is OpenShift Serverless? According to the OpenShift Serverless GA release: OpenShift Serverless enables developers to build what they want, when they want, with whatever tools and languages they need. Developers can quickly get their applications up and deployed using serverless compute, and they won't have to build and maintain larger container images to do so. OpenShift Serverless is based on the Knative open source Kubernetes serverless project. While it has a few different parts, we will focus on deploying a serverless Node.js application as a Knative Serving service.</summary></entry><entry><title type="html">Use Node.js 14 on Red Hat OpenShift</title><link href="https://nodeshift.dev//blog/node14-openshift/" rel="alternate" type="text/html" title="Use Node.js 14 on Red Hat OpenShift" /><published>2020-05-21T00:00:00+00:00</published><updated>2020-05-21T00:00:00+00:00</updated><id>https://nodeshift.dev//blog/node14-openshift</id><content type="html" xml:base="https://nodeshift.dev//blog/node14-openshift/">&lt;p&gt;On April 21st, &lt;a href=&quot;https://developers.redhat.com/blog/category/node-js/&quot;&gt;Node.js&lt;/a&gt; released its latest major version with &lt;a href=&quot;https://nodejs.org/en/blog/release/v14.0.0/&quot;&gt;Node.js 14&lt;/a&gt;. Because this is an even-numbered release, it will become a Long Term Support (LTS) release in October 2020. This release brings a host of improvements and features, such as improved diagnostics, a V8 upgrade, an experimental Async Local Storage API, hardened the streams APIs, and more.&lt;/p&gt;
+
+&lt;p&gt;While Red Hat will release a &lt;a href=&quot;https://developers.redhat.com/blog/category/ubi/&quot;&gt;Universal Base Image (UBI)&lt;/a&gt; for Node.js 14 in the coming months for &lt;a href=&quot;https://developers.redhat.com/openshift&quot;&gt;Red Hat OpenShift&lt;/a&gt; and &lt;a href=&quot;https://developers.redhat.com/topics/linux/&quot;&gt;Red Hat Enterprise Linux&lt;/a&gt;, this article helps you get started today. If you’re interested in more about Node.js 14’s improvements and new features, check out the article listed at the end. &lt;!--more--&gt;&lt;/p&gt;
+
+&lt;p&gt;Let’s use a sample application that is based on the official &lt;a href=&quot;https://nodejs.org/fr/docs/guides/nodejs-docker-webapp/#dockerizing-a-node-js-web-app&quot;&gt;&lt;em&gt;How to Dockerize a Node.js Application&lt;/em&gt; Nodejs.org docs&lt;/a&gt;. This is a simple Express.js application with a Dockerfile using the latest upstream community Node.js 14 image.&lt;/p&gt;
+&lt;h2&gt;How to deploy&lt;/h2&gt;
+&lt;p&gt;First, use the &lt;code&gt;oc new-app&lt;/code&gt; command with a Git repo that has a Dockerfile in it:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ oc new-app https://github.com/nodeshift-starters/basic-node-app-dockerized&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;To access your application, you need to expose it using this simple command:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ oc expose svc/basic-node-app-dockerized&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Or, you can use the &lt;a href=&quot;https://www.npmjs.com/package/nodeshift&quot;&gt;Nodeshift module&lt;/a&gt; to deploy a local directory. Assuming that you cloned the project we used earlier, you can run this command:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx nodeshift --build.strategy=Docker --expose&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3&gt;Wrap up&lt;/h3&gt;
+&lt;p&gt;As you can see, using Node.js 14 on Red Hat OpenShift today is pretty simple. To learn more about the improvements and features in Node.js 14, check out the official &lt;a href=&quot;https://medium.com/@nodejs/node-js-version-14-available-now-8170d384567e&quot;&gt;Node.js blog post&lt;/a&gt;.&lt;/p&gt;</content><author><name>Lucas Holmquist</name><email>lholmqui@redhat.com</email></author><category term="Openshift" /><category term="Nodeshift" /><summary type="html">On April 21st, Node.js released its latest major version with Node.js 14. Because this is an even-numbered release, it will become a Long Term Support (LTS) release in October 2020. This release brings a host of improvements and features, such as improved diagnostics, a V8 upgrade, an experimental Async Local Storage API, hardened the streams APIs, and more.</summary></entry><entry><title type="html">Modern web applications on OpenShift, Part 4: Openshift Pipelines</title><link href="https://nodeshift.dev//blog/modern-web-part-4/" rel="alternate" type="text/html" title="Modern web applications on OpenShift, Part 4: Openshift Pipelines" /><published>2020-04-27T00:00:00+00:00</published><updated>2020-04-27T00:00:00+00:00</updated><id>https://nodeshift.dev//blog/modern-web-part-4</id><content type="html" xml:base="https://nodeshift.dev//blog/modern-web-part-4/">&lt;p&gt;When I wrote part 3 of this series, &lt;em&gt;&lt;a href=&quot;https://developers.redhat.com/blog/2019/01/17/modern-web-applications-on-openshift-part-3-openshift-as-a-development-environment/&quot;&gt;Modern web applications on OpenShift: Part 3 — OpenShift as a development environment&lt;/a&gt;&lt;/em&gt;, I said that was the final part. However, there is new tech that fits in very nicely with deploying modern Web Applications to OpenShift, so part 4 is necessary. As a refresher, in the &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/&quot;&gt;first article&lt;/a&gt;, we looked at how to deploy a modern web application using the fewest commands. In the &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/&quot;&gt;second part&lt;/a&gt;, we took a deeper look into how the new source-to-image (S2I) web app builder works and how to use it as part of a chained build. In &lt;a href=&quot;https://developers.redhat.com/blog/2019/01/17/modern-web-applications-on-openshift-part-3-openshift-as-a-development-environment/&quot;&gt;the third&lt;/a&gt;, we took a look at how to run your app’s “development workflow” on &lt;a href=&quot;https://developers.redhat.com/openshift/&quot;&gt;Red Hat OpenShift&lt;/a&gt;. This article talks about OpenShift Pipelines and how this tool can be used as an alternative to a chained build.&lt;/p&gt;
+
+&lt;!--more--&gt;
+&lt;h2&gt;What is OpenShift Pipelines?&lt;/h2&gt;
+&lt;p&gt;OpenShift Pipelines are a cloud-native, continuous integration and delivery (CI/CD) solution for building pipelines using Tekton. Tekton is a flexible, Kubernetes-native, open source CI/CD framework that enables automating deployments across multiple platforms (Kubernetes, serverless, VMs, etc) by abstracting away the underlying details.&lt;/p&gt;
+
+&lt;p&gt;This post assumes some knowledge of Pipelines, so if you are new to this technology, check out this &lt;a href=&quot;https://github.com/openshift/pipelines-tutorial&quot;&gt;official tutorial first&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Setting up your environment&lt;/h2&gt;
+&lt;p&gt;To effectively follow this article, there is some initial setup:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Set up an OpenShift 4 cluster: I've been using CodeReady Containers (CRD) to set up this environment (here are &lt;a href=&quot;https://cloud.redhat.com/openshift/install/crc/installer-provisioned&quot;&gt;the setup instructions&lt;/a&gt;).&lt;/li&gt;
+  &lt;li&gt;Install the Pipeline Operator once your cluster is up and running, which involves only a couple of clicks (here is how to &lt;a href=&quot;https://github.com/openshift/pipelines-tutorial/blob/master/install-operator.md&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;install the Operator&lt;/a&gt;).&lt;/li&gt;
+  &lt;li&gt;Get the &lt;a href=&quot;https://github.com/tektoncd/cli#installing-tkn&quot;&gt;Tekton CLI (&lt;code&gt;tkn&lt;/code&gt;) here&lt;/a&gt;.&lt;/li&gt;
+  &lt;li&gt;Run the &lt;code&gt;create-react-app&lt;/code&gt; CLI tool to create the application that we will eventually deploy (this &lt;a href=&quot;https://github.com/nodeshift-starters/react-pipeline-example&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;basic React example&lt;/a&gt;).&lt;/li&gt;
+  &lt;li&gt;(Optional) Clone the repo to run the example locally by running &lt;code&gt;npm install&lt;/code&gt; and then &lt;code&gt;npm start&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;The application repo also has a &lt;code&gt;k8s&lt;/code&gt; directory, which contains Kubernetes/OpenShift YAMLs that can be used to deploy the application. You can find the &lt;code&gt;Tasks&lt;/code&gt;, &lt;code&gt;ClusterTasks&lt;/code&gt;, &lt;code&gt;Resources&lt;/code&gt; and &lt;code&gt;Pipelines&lt;/code&gt; that we will be creating &lt;a href=&quot;https://github.com/nodeshift/webapp-pipeline-tutorial&quot;&gt;in this repo&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Getting started&lt;/h2&gt;
+&lt;p&gt;We first need to create a new project on our OpenShift cluster for this example. The new project will be called &lt;code&gt;webapp-pipeline&lt;/code&gt;. Create this new project by calling:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ oc new-project webapp-pipeline&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;The naming here is important for this tutorial, so if you decide to change it, pay attention to where I call out that the project name, and update accordingly. From here, this article will work backward. We will create all of the small pieces that make up the pipeline first, and then we will create the pipeline.&lt;/p&gt;
+
+&lt;p&gt;So, first up…&lt;/p&gt;
+&lt;h2&gt;Tasks&lt;/h2&gt;
+&lt;p&gt;Let’s create a couple of &lt;em&gt;tasks&lt;/em&gt; that can help us deploy our application later as part of our &lt;em&gt;pipeline&lt;/em&gt;. The first task, &lt;code&gt;apply_manifests_task&lt;/code&gt;, is responsible for applying the Kubernetes resource (service, deployment, and route) YAMLs that are in the applications k8s directory. The second task, &lt;code&gt;update_deployment_task&lt;/code&gt;, is responsible for updating the deployed image with the new image our pipeline creates.&lt;/p&gt;
+
+&lt;p&gt;Don’t worry too much about these right now. These tasks are more like utilities, and we will see them in a little while. For now, create these tasks with:&lt;/p&gt;
+&lt;pre&gt;$ oc create -f https://raw.githubusercontent.com/nodeshift/webapp-pipeline-tutorial/master/tasks/update_deployment_task.yaml
+$ oc create -f https://raw.githubusercontent.com/nodeshift/webapp-pipeline-tutorial/master/tasks/apply_manifests_task.yaml
+&lt;/pre&gt;
+&lt;p&gt;You can then use the &lt;code&gt;tkn&lt;/code&gt; CLI to make sure they were created:&lt;/p&gt;
+&lt;pre&gt;$ tkn task ls
+
+NAME                AGE
+apply-manifests     1 minute ago
+update-deployment   1 minute ago
+&lt;/pre&gt;
+&lt;p&gt;&lt;strong&gt;Note:&lt;/strong&gt; These tasks are local to your current project.&lt;/p&gt;
+&lt;h2&gt;Cluster tasks&lt;/h2&gt;
+&lt;p&gt;A cluster task is pretty much the same thing as a task. It is still a reusable collection of steps that, when combined, perform a specific task, except that cluster task is available to the whole cluster. To see a list of the cluster tasks that came pre-installed when you added the pipeline Operator, use the &lt;code&gt;tkn&lt;/code&gt; CLI again:&lt;/p&gt;
+&lt;pre&gt;$ tkn clustertask ls
+
+NAME                       AGE
+buildah                    1 day ago
+buildah-v0-10-0            1 day ago
+jib-maven                  1 day ago
+kn                         1 day ago
+maven                      1 day ago
+openshift-client           1 day ago
+openshift-client-v0-10-0   1 day ago
+s2i                        1 day ago
+s2i-go                     1 day ago
+s2i-go-v0-10-0             1 day ago
+s2i-java-11                1 day ago
+s2i-java-11-v0-10-0        1 day ago
+s2i-java-8                 1 day ago
+s2i-java-8-v0-10-0         1 day ago
+s2i-nodejs                 1 day ago
+s2i-nodejs-v0-10-0         1 day ago
+s2i-perl                   1 day ago
+s2i-perl-v0-10-0           1 day ago
+s2i-php                    1 day ago
+s2i-php-v0-10-0            1 day ago
+s2i-python-3               1 day ago
+s2i-python-3-v0-10-0       1 day ago
+s2i-ruby                   1 day ago
+s2i-ruby-v0-10-0           1 day ago
+s2i-v0-10-0                1 day ago
+&lt;/pre&gt;
+&lt;p&gt;We will now create two cluster tasks. The first creates an S2I image and pushes it into the internal OpenShift registry, and the second builds our NGINX-based image using the contents of our built application&lt;/p&gt;
+&lt;h3&gt;Creating and pushing the image&lt;/h3&gt;
+&lt;p&gt;For the first cluster task, we follow the part of the same process that we used in the previous article about chain builds. There, we used an S2I image (&lt;code&gt;ubi8-s2i-web-app&lt;/code&gt;) to “build” our web application. This action resulted in an image that was stored in the internal OpenShift registry. We will use that web-app S2I image to create a &lt;code&gt;DockerFile&lt;/code&gt; for our application and then use Buildah to actually build and push that image into the internal OpenShift registry: This is actually what OpenShift does if you deploy your applications with NodeShift.&lt;/p&gt;
+
+&lt;p&gt;If you’re wondering how I knew that I needed all of those steps, the answer is that I didn’t. I copied &lt;a href=&quot;https://github.com/openshift/pipelines-catalog/blob/master/s2i-nodejs/s2i-nodejs-task.yaml&quot;&gt;the official Node.js version&lt;/a&gt; and updated it for my needs.&lt;/p&gt;
+
+&lt;p&gt;Now, create the &lt;code&gt;s2i-web-app&lt;/code&gt; cluster task:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ oc create -f https://raw.githubusercontent.com/nodeshift/webapp-pipeline-tutorial/master/clustertasks/s2i-web-app-task.yaml&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;I won’t go into each of the entries in that file but I do want to point out a particular parameter: &lt;code&gt;OUTPUT_DIR&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;params:
+      - name: OUTPUT_DIR
+        description: The location of the build output directory
+        default: build
+&lt;/pre&gt;
+&lt;p&gt;This parameter defaults to &lt;code&gt;build&lt;/code&gt;, which is where React puts its built content. Different frameworks could have different locations. For example, Ember uses &lt;code&gt;dist&lt;/code&gt;. The output of this first cluster task will be an image that contains our built HTML, JavaScript, and CSS.&lt;/p&gt;
+&lt;h3&gt;Build the NGINX-based image&lt;/h3&gt;
+&lt;p&gt;For the second cluster task, we need to create the task that builds our NGINX-based image using the contents of our built application. This is basically the chained build part of the aforementioned article.&lt;/p&gt;
+
+&lt;p&gt;To do this, create the &lt;code&gt;webapp-build-runtime&lt;/code&gt; cluster task the same as with the other one:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ oc create -f https://raw.githubusercontent.com/nodeshift/webapp-pipeline-tutorial/master/clustertasks/webapp-build-runtime-task.yaml&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;If you looked at the code for these cluster tasks, you would notice that we are not specifying what Git repo we are working with, or what image names we are creating. We only specify that we are passing in a Git repo or an image, for example, and that we are outputting an image. This process allows us to reuse these cluster tasks with different applications.&lt;/p&gt;
+
+&lt;p&gt;This leads us nicely into…&lt;/p&gt;
+&lt;h2&gt;Resources&lt;/h2&gt;
+&lt;p&gt;Since we just learned that our cluster tasks are meant to be generic as possible, we need to create resources to use as inputs (the Git repo) and outputs (the resulting images). The first resource we need is the Git repo where our application is. This resource can look something like this:&lt;/p&gt;
+&lt;pre&gt;# This resource is the location of the git repo with the web application source
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: web-application-repo
+spec:
+  type: git
+  params:
+    - name: url
+      value: https://github.com/nodeshift-starters/react-pipeline-example
+    - name: revision
+      value: master
+&lt;/pre&gt;
+&lt;p&gt;This &lt;code&gt;PipelineResource&lt;/code&gt; is of the &lt;code&gt;git&lt;/code&gt; type. We can see in the params section that the &lt;code&gt;url&lt;/code&gt; targets a specific repo and that we also specify the master branch (this is optional, but I’m including it for completeness).&lt;/p&gt;
+
+&lt;p&gt;The next resource we need is an image where we will store the result of the &lt;code&gt;s2i-web-app&lt;/code&gt; task. This process might look something like:&lt;/p&gt;
+&lt;pre&gt;# This resource is the result of running &quot;npm run build&quot;,  the resulting built files will be located in /opt/app-root/output
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: built-web-application-image
+spec:
+  type: image
+  params:
+    - name: url
+      value: image-registry.openshift-image-registry.svc:5000/webapp-pipeline/built-web-application:latest
+&lt;/pre&gt;
+&lt;p&gt;This &lt;code&gt;PipelineResource&lt;/code&gt; is of the &lt;code&gt;image&lt;/code&gt; type and the value of &lt;code&gt;url&lt;/code&gt; points to the internal OpenShift Image Registry—specifically the one in the &lt;code&gt;webapp-pipeline&lt;/code&gt; namespace. If you are using a different namespace, then change that value accordingly.&lt;/p&gt;
+
+&lt;p&gt;The last resource will also be an &lt;code&gt;image&lt;/code&gt; type, and this will be the resulting NGINX image that we will eventually deploy:&lt;/p&gt;
+&lt;pre&gt;# This resource is the image that will be just the static html, css, js files being run with nginx
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: runtime-web-application-image
+spec:
+  type: image
+  params:
+    - name: url
+      value: image-registry.openshift-image-registry.svc:5000/webapp-pipeline/runtime-web-application:latest
+&lt;/pre&gt;
+&lt;p&gt;Again, this resource will store the image inside the internal OpenShift registry in the &lt;code&gt;webapp-pipeline&lt;/code&gt; namespace.&lt;/p&gt;
+
+&lt;p&gt;To create all of these resources at once, run this &lt;code&gt;create&lt;/code&gt; command:&lt;/p&gt;
+&lt;pre&gt;$ oc create -f https://raw.githubusercontent.com/nodeshift/webapp-pipeline-tutorial/master/resources/resource.yaml
+&lt;/pre&gt;
+&lt;p&gt;You can then see the created resources using:&lt;/p&gt;
+&lt;pre&gt;$ tkn resource ls
+&lt;/pre&gt;
+&lt;h2&gt;The pipeline&lt;/h2&gt;
+&lt;p&gt;Now that we have all of the pieces, let’s put them together in our pipeline. You can create the pipeline by running the following command:&lt;/p&gt;
+&lt;pre&gt;$ oc create -f https://raw.githubusercontent.com/nodeshift/webapp-pipeline-tutorial/master/pipelines/build-and-deploy-react.yaml
+&lt;/pre&gt;
+&lt;p&gt;Before we run this command, let’s take a look at the pieces. First, the name:&lt;/p&gt;
+&lt;pre&gt;apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: build-and-deploy-react
+&lt;/pre&gt;
+&lt;p&gt;Then, in the &lt;code&gt;spec&lt;/code&gt; section, we see specify the resources that we created earlier:&lt;/p&gt;
+&lt;pre&gt;spec:
+  resources:
+    - name: web-application-repo
+      type: git
+    - name: built-web-application-image
+      type: image
+    - name: runtime-web-application-image
+      type: image
+&lt;/pre&gt;
+&lt;p&gt;We then create tasks for our pipeline to run. The first task we want to run is the &lt;code&gt;s2i-web-app&lt;/code&gt; cluster task we created earlier:&lt;/p&gt;
+&lt;pre&gt;tasks:
+    - name: build-web-application
+      taskRef:
+        name: s2i-web-app
+        kind: ClusterTask
+&lt;/pre&gt;
+&lt;p&gt;This task takes an input (which is the &lt;code&gt;git&lt;/code&gt; resource) and an output (which is the &lt;code&gt;built-web-application-image&lt;/code&gt; resource). We also pass a parameter to tell our cluster task that we don’t need to verify TLS because we are using self-signed certificates:&lt;/p&gt;
+&lt;pre&gt;resources:
+        inputs:
+          - name: source
+            resource: web-application-repo
+        outputs:
+          - name: image
+            resource: built-web-application-image
+      params:
+        - name: TLSVERIFY
+          value: &quot;false&quot;
+&lt;/pre&gt;
+&lt;p&gt;The next task has a similar setup, but this time calls the &lt;code&gt;webapp-build-runtime&lt;/code&gt; cluster task we created earlier:&lt;/p&gt;
+&lt;pre&gt;name: build-runtime-image
+    taskRef:
+      name: webapp-build-runtime
+      kind: ClusterTask
+&lt;/pre&gt;
+&lt;p&gt;Similar to our previous task, we are passing a resource, but this time it is the &lt;code&gt;built-web-application-image&lt;/code&gt; (this was the output of our previous task). Again, we specify an image as the output. This task should run after the previous task, so we add the &lt;code&gt;runAfter&lt;/code&gt; field:&lt;/p&gt;
+&lt;pre&gt;resources:
+        inputs:
+          - name: image
+            resource: built-web-application-image
+        outputs:
+          - name: image
+            resource: runtime-web-application-image
+        params:
+        - name: TLSVERIFY
+          value: &quot;false&quot;
+      runAfter:
+        - build-web-application
+&lt;/pre&gt;
+&lt;p&gt;The next two tasks are responsible for applying the service, route, and deployment YAML files that live in the web application’s &lt;code&gt;k8s&lt;/code&gt; directory, and then updating the deployment with the newly created image. These are the two cluster tasks we defined in the beginning.&lt;/p&gt;
+&lt;h3&gt;Run the pipeline&lt;/h3&gt;
+&lt;p&gt;Now that all of the pieces are created, we can finally run our new pipeline with the following command:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ tkn pipeline start build-and-deploy-react&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;At this point, the CLI will become interactive, and you will need to choose the appropriate resources at each prompt. For the &lt;code&gt;git&lt;/code&gt; resource, choose &lt;code&gt;web-application-repo&lt;/code&gt;. Then, choose &lt;code&gt;built-web-application-image&lt;/code&gt; for the first image resource and &lt;code&gt;runtime-web-application-image&lt;/code&gt; for the second image resource:&lt;/p&gt;
+
+&lt;pre&gt;? Choose the git resource to use for web-application-repo: web-application-repo (https://github.com/nodeshift-starters/react-pipeline-example)
+? Choose the image resource to use for built-web-application-image: built-web-application-image (image-registry.openshift-image-registry.svc:5000/webapp-pipeline/built-web-
+application:latest)
+? Choose the image resource to use for runtime-web-application-image: runtime-web-application-image (image-registry.openshift-image-registry.svc:5000/webapp-pipeline/runtim
+e-web-application:latest)
+Pipelinerun started: build-and-deploy-react-run-4xwsr
+&lt;/pre&gt;
+
+&lt;p&gt;Check the status of the pipeline by running:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ tkn pipeline logs -f&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;After the pipeline has finished and the application is deployed, get the exposed route with this little command:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ oc get route react-pipeline-example --template='http://{{.spec.host}}'&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;For a more visual approach, we can look at our pipeline in the web console’s &lt;strong&gt;Developer&lt;/strong&gt; view and click the &lt;b&gt;Pipelines&lt;/b&gt; section, as shown in Figure 1.&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;wp-image-693187 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2020/03/web-app-pipeline-web-console1-1024x621.png&quot; alt=&quot;Pipeline overview&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Click the running pipeline to see more detail, as shown in Figure 2.&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;wp-image-693177 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2020/03/web-app-pipeline-web-console-2-1024x610.png&quot; alt=&quot;Pipeline detail&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Once you have the details, you can see your running application in the &lt;strong&gt;Topology&lt;/strong&gt; view, as shown in Figure 3.&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;size-large wp-image-693207&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2020/03/web-app-pipeline-web-console-3-1024x612.png&quot; alt=&quot;Web App Topology View&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Clicking the icon on the circle’s top right opens the application. Figure 4 shows what this will look like.&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;wp-image-693217 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2020/03/web-app-pipeline-web-console-4-1024x617.png&quot; alt=&quot;Running React Application&quot; /&gt;&lt;/p&gt;
+
+&lt;h3&gt;Wrapping up&lt;/h3&gt;
+&lt;p&gt;In this article, we saw how to mimic the chained-build template approach with the use of OpenShift Pipelines. You can find all of the things we created &lt;a href=&quot;https://github.com/nodeshift/webapp-pipeline-tutorial&quot;&gt;in this repo&lt;/a&gt;. There are also some GitHub issues there for adding an example with another framework besides React, so feel free to contribute!&lt;/p&gt;</content><author><name>Lucas Holmquist</name><email>lholmqui@redhat.com</email></author><category term="Openshift" /><category term="Nodeshift" /><summary type="html">When I wrote part 3 of this series, Modern web applications on OpenShift: Part 3 — OpenShift as a development environment, I said that was the final part. However, there is new tech that fits in very nicely with deploying modern Web Applications to OpenShift, so part 4 is necessary. As a refresher, in the first article, we looked at how to deploy a modern web application using the fewest commands. In the second part, we took a deeper look into how the new source-to-image (S2I) web app builder works and how to use it as part of a chained build. In the third, we took a look at how to run your app’s “development workflow” on Red Hat OpenShift. This article talks about OpenShift Pipelines and how this tool can be used as an alternative to a chained build.</summary></entry><entry><title type="html">Easily deploy Node.js applications to Red Hat OpenShift using Nodeshift</title><link href="https://nodeshift.dev//blog/deploy-with-ease-with-nodeshift/" rel="alternate" type="text/html" title="Easily deploy Node.js applications to Red Hat OpenShift using Nodeshift" /><published>2019-08-30T00:00:00+00:00</published><updated>2019-08-30T00:00:00+00:00</updated><id>https://nodeshift.dev//blog/deploy-with-ease-with-nodeshift</id><content type="html" xml:base="https://nodeshift.dev//blog/deploy-with-ease-with-nodeshift/">&lt;p&gt;I recently wrote articles on &lt;a href=&quot;https://developers.redhat.com/blog/2018/04/16/zero-express-openshift-3-commands/&quot;&gt;deploying an Express.js application to OpenShift&lt;/a&gt;, &lt;a href=&quot;https://developers.redhat.com/blog/2018/05/15/debug-your-node-js-application-on-openshift-with-chrome-devtools/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;how to debug your Node.js application on OpenShift with Chrome Dev Tools&lt;/a&gt; and a short series on &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/&quot;&gt;deploying modern web applications to OpenShift&lt;/a&gt;. All of those articles used a node module called &lt;a href=&quot;https://www.npmjs.com/package/nodeshift&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;Nodeshift&lt;/a&gt;, but I did a Jedi, hand-wavy thing when talking about it. This next series of articles takes a deeper look at what Nodeshift is and how it is used to ease the deployment of Node.js apps to OpenShift during development.&lt;!--more--&gt;&lt;/p&gt;
+&lt;h2&gt;Basic app deployment on Red Hat OpenShift&lt;/h2&gt;
+&lt;p&gt;Although there are different approaches to how one deploys an application to &lt;a href=&quot;https://developers.redhat.com/openshift/&quot;&gt;Red Hat OpenShift&lt;/a&gt;, we will look at the workflow I like to use. This specific workflow uses Source-to-Image (S2I) images and source code that is located on my local machine. Before we take a look at Nodeshift, though, let’s first take a quick look at some of the parts that this workflow uses. This flow can logically be broken into two parts: the &lt;strong&gt;Build Phase&lt;/strong&gt; and the &lt;strong&gt;Deploy Phase&lt;/strong&gt;.&lt;/p&gt;
+&lt;h3&gt;Part 1: The Build Phase&lt;/h3&gt;
+&lt;p&gt;The first phase of this workflow is all about building an image to eventually run in the Deploy phase. For our Node.js app, this is the phase where we install our dependencies and run any build scripts. If you are familiar with the phases of S2I, this phase is where the assemble script runs.&lt;/p&gt;
+
+&lt;p&gt;Using a BuildConfig, we can specify where our code comes from and what type of strategy to use when building the code. In our case, we use the DockerImage strategy since we are using a Node.js S2I image. The BuildConfig also tells OpenShift where to put our built code when it is done: In our case, an ImageStream.&lt;/p&gt;
+
+&lt;p&gt;Initially, we create an empty ImageStream, and then we populate that with the results of a successful build. In fact, if you were to look at OpenShift’s internal image registry you would see that image there, similar to how you would see a container image on your local machine when running something like &lt;code&gt;docker images&lt;/code&gt;.&lt;/p&gt;
+&lt;h3&gt;Part 2: The Deploy Phase&lt;/h3&gt;
+&lt;p&gt;The second phase of this workflow is all about running our application and setting it up to be accessed. For our Node.js app, this is the phase where we might run something like &lt;code&gt;npm run start&lt;/code&gt; to launch our application. Again, if you are familiar with the phases of S2I, this phase is where the run script runs. By default, the Node.js S2I image that we use here this same command: &lt;code&gt;npm run start&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Using a DeploymentConfig, we can then trigger the S2I run phase. DeploymentConfigs are also used to describe our application (what ImageStream to use, any environment variables, setting up health checks, and so on). Once a Deployment is successful, a running Pod is created.&lt;/p&gt;
+
+&lt;p&gt;Next, we need a Service for the new Pod’s internal load balancing, as well as a Route if we want to access our application outside of the OpenShift context.&lt;/p&gt;
+
+&lt;p&gt;While this workflow is not too complicated, there are many different pieces that work together. Those pieces are also YAML files, which at times can be difficult to read and interpret.&lt;/p&gt;
+&lt;h2&gt;Nodeshift basics&lt;/h2&gt;
+&lt;p&gt;Now that we have a little background on deploying applications to OpenShift, let’s talk about Nodeshift and what it is. According to the Nodeshift module readme:&lt;/p&gt;
+&lt;blockquote&gt;Nodeshift is an opinionated command-line application and programmable API that you can use to deploy Node.js projects to OpenShift.&lt;/blockquote&gt;
+&lt;p&gt;The opinion that Nodeshift takes is the workflow that I’ve just described, which allows the user to develop their application and deploy it to OpenShift, without having to think about all those different YAML files.&lt;/p&gt;
+
+&lt;p&gt;Nodeshift is also written in Node.js, so it can fit into a Node developer’s current workflow or be added to an existing project using &lt;code&gt;npm install&lt;/code&gt;. The only real prerequisite is that you are logged into your OpenShift cluster using &lt;code&gt;oc login&lt;/code&gt;, but that isn’t really a requirement. You can also specify an external config file, which we will see in a later article about more advanced usage.&lt;/p&gt;
+&lt;h3&gt;Running Nodeshift&lt;/h3&gt;
+&lt;p&gt;Using Nodeshift on the command line is easy. You can install it globally:&lt;/p&gt;
+&lt;pre&gt;$ npm install -g nodeshift
+
+$ nodeshift --help
+&lt;/pre&gt;
+&lt;p&gt;or by using &lt;code&gt;&lt;a href=&quot;https://www.npmjs.com/package/npx&quot;&gt;npx&lt;/a&gt;&lt;/code&gt;, which is the preferred way:&lt;/p&gt;
+&lt;pre&gt;$ npx nodeshift --help
+&lt;/pre&gt;
+&lt;p&gt;As is the case with every other command-line tool, running Nodeshift with that &lt;code&gt;--help&lt;/code&gt; flag shows us the commands and flags that are available to use:&lt;/p&gt;
+&lt;pre&gt;Commands:
+  nodeshift deploy                default command - deploy             [default]
+  nodeshift build                 build command
+  nodeshift resource              resource command
+  nodeshift apply-resource        apply resource command
+  nodeshift undeploy [removeAll]  undeploy resources
+
+Options:
+  --help                   Show help                                   [boolean]
+  --version                Show version number                         [boolean]
+  --projectLocation        change the default location of the project   [string]
+  --configLocation         change the default location of the config    [string]
+  --dockerImage            the s2i image to use, defaults to
+                           nodeshift/centos7-s2i-nodejs                 [string]
+  --imageTag               The tag of the docker image to use for the deployed
+                           application.             [string] [default: &quot;latest&quot;]
+  --outputImageStream      The name of the ImageStream to output to.  Defaults
+                           to project name from package.json            [string]
+  --outputImageStreamTag   The tag of the ImageStream to output to.     [string]
+  --quiet                  supress INFO and TRACE lines from output logs
+                                                                       [boolean]
+  --expose                 flag to create a default Route and expose the default
+                           service
+                               [boolean] [choices: true, false] [default: false]
+  --namespace.displayName  flag to specify the project namespace display name to
+                           build/deploy into.  Overwrites any namespace settings
+                           in your OpenShift or Kubernetes configuration files
+                                                                        [string]
+  --namespace.create       flag to create the namespace if it does not exist.
+                           Only applicable for the build and deploy command.
+                           Must be used with namespace.name            [boolean]
+  --namespace.remove       flag to remove the user created namespace.  Only
+                           applicable for the undeploy command.  Must be used
+                           with namespace.name                         [boolean]
+  --namespace.name         flag to specify the project namespace name to
+                           build/deploy into.  Overwrites any namespace settings
+                           in your OpenShift or Kubernetes configuration files
+                                                                        [string]
+  --deploy.port            flag to update the default ports on the resource
+                           files. Defaults to 8080               [default: 8080]
+  --build.recreate         flag to recreate a buildConfig or Imagestream
+           [choices: &quot;buildConfig&quot;, &quot;imageStream&quot;, false, true] [default: false]
+  --build.forcePull        flag to make your BuildConfig always pull a new image
+                           from dockerhub or not
+                               [boolean] [choices: true, false] [default: false]
+  --build.incremental      flag to perform incremental builds, which means it
+                           reuses artifacts from previously-built images
+                               [boolean] [choices: true, false] [default: false]
+  --metadata.out           determines what should be done with the response
+                           metadata from OpenShift
+        [string] [choices: &quot;stdout&quot;, &quot;ignore&quot;, &quot;&quot;] [default: &quot;ignore&quot;]
+  --cmd                                                      [default: &quot;deploy&quot;]
+&lt;/pre&gt;
+&lt;p&gt;Let’s take a look at the most common usage.&lt;/p&gt;
+&lt;h3&gt;Deploying Nodeshift&lt;/h3&gt;
+&lt;p&gt;Let’s say we have a simple express.js application that we have been working on locally, which we’ve bound to port 8080, and we want to deploy this application to OpenShift. We just run:&lt;/p&gt;
+&lt;pre&gt;  $ npx nodeshift
+&lt;/pre&gt;
+&lt;p&gt;Once that command runs, Nodeshift goes to work. Here are the steps that the command goes through using the default deploy command:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Nodeshift packages your source code into a &lt;code&gt;tar&lt;/code&gt; file to upload to the OpenShift cluster.&lt;/li&gt;
+  &lt;li&gt;Nodeshift looks at the &lt;code&gt;files&lt;/code&gt; property of your application's &lt;code&gt;package.json&lt;/code&gt; (by default, it ignores any &lt;code&gt;node_modules&lt;/code&gt;, &lt;code&gt;tmp&lt;/code&gt;, or &lt;code&gt;.git&lt;/code&gt; folders):
+&lt;ul&gt;
+  &lt;li&gt;If a &lt;code&gt;files&lt;/code&gt; property exists, Nodeshift uses &lt;code&gt;tar&lt;/code&gt; to archive those files.&lt;/li&gt;
+  &lt;li&gt;If there is no &lt;code&gt;files&lt;/code&gt; property, Nodeshift archives the current directory.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+  &lt;li&gt;Once the archive is created, a new BuildConfig and ImageStream are created on the remote cluster.&lt;/li&gt;
+  &lt;li&gt;The archive is uploaded.&lt;/li&gt;
+  &lt;li&gt;An OpenShift Build starts running on OpenShift.&lt;/li&gt;
+  &lt;li&gt;Nodeshift watches that build process and outputs the remote log to the console.&lt;/li&gt;
+  &lt;li&gt;Once the build is completed, Nodeshift then creates a DeploymentConfig, which triggers an actual deployment, and also a Kubernetes Service. (A Route is not created by default, but if one is desired, you can use the &lt;code&gt;--expose&lt;/code&gt; flag.)&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;If you make code changes and run the &lt;code&gt;nodeshift&lt;/code&gt; command again, the process happens again, but this time it uses the existing config files that were created on the first run.&lt;/p&gt;
+&lt;h2&gt;Until next time&lt;/h2&gt;
+&lt;p&gt;In this article, we looked at the anatomy of a Red Hat OpenShift deployment and how Nodeshift can help abstract the complexity with a simple example. Stay tuned for future articles, in which we will look at other commands that Nodeshift provides. In those articles, we will explore several commonly used options and show how to use Nodeshift in our code instead of just using it at the command line.&lt;/p&gt;</content><author><name>Lucas Holmquist</name><email>lholmqui@redhat.com</email></author><category term="Openshift" /><category term="Nodeshift" /><summary type="html">I recently wrote articles on deploying an Express.js application to OpenShift, how to debug your Node.js application on OpenShift with Chrome Dev Tools and a short series on deploying modern web applications to OpenShift. All of those articles used a node module called Nodeshift, but I did a Jedi, hand-wavy thing when talking about it. This next series of articles takes a deeper look at what Nodeshift is and how it is used to ease the deployment of Node.js apps to OpenShift during development. Basic app deployment on Red Hat OpenShift Although there are different approaches to how one deploys an application to Red Hat OpenShift, we will look at the workflow I like to use. This specific workflow uses Source-to-Image (S2I) images and source code that is located on my local machine. Before we take a look at Nodeshift, though, let’s first take a quick look at some of the parts that this workflow uses. This flow can logically be broken into two parts: the Build Phase and the Deploy Phase. Part 1: The Build Phase The first phase of this workflow is all about building an image to eventually run in the Deploy phase. For our Node.js app, this is the phase where we install our dependencies and run any build scripts. If you are familiar with the phases of S2I, this phase is where the assemble script runs.</summary></entry><entry><title type="html">Modern web applications on OpenShift: Part 3 – Openshift as a development environment</title><link href="https://nodeshift.dev//blog/modern-web-part-3/" rel="alternate" type="text/html" title="Modern web applications on OpenShift: Part 3 – Openshift as a development environment" /><published>2019-01-07T00:00:00+00:00</published><updated>2019-01-07T00:00:00+00:00</updated><id>https://nodeshift.dev//blog/modern-web-part-3</id><content type="html" xml:base="https://nodeshift.dev//blog/modern-web-part-3/">&lt;p&gt;Welcome back to the final part of this multipart series about deploying modern web applications on Red &lt;a href=&quot;http://openshift.com/&quot;&gt;Hat OpenShift&lt;/a&gt;. In the &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/&quot;&gt;first post&lt;/a&gt;, we took a look at how to deploy a modern web application using the fewest commands.&lt;/p&gt;
+
+&lt;p&gt;In the &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/&quot;&gt;second part&lt;/a&gt;, we took a deeper look into how the new source-to-image (S2I) web app builder works and how to use it as part of a chained build.&lt;/p&gt;
+
+&lt;p&gt;This third and final part will take a look at how you can run your app’s “development workflow” on OpenShift.&lt;!--more--&gt;&lt;/p&gt;
+&lt;h2&gt;Development workflow&lt;/h2&gt;
+&lt;p&gt;As mentioned in the &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/&quot;&gt;first post&lt;/a&gt;, a common development workflow for modern web applications is to run a “development server” that watches your local files for changes. When a change occurs, the application’s build is run and the browser is refreshed with your updated app.&lt;/p&gt;
+
+&lt;p&gt;Most of the modern frameworks have this “development server” built into their respective CLI tools.&lt;/p&gt;
+&lt;h3&gt;A local example&lt;/h3&gt;
+&lt;p&gt;Let’s first start with running our application locally, so we can see how this workflow is supposed to work. We are going to continue with the &lt;a href=&quot;https://github.com/lholmquist/react-web-app&quot;&gt;React example&lt;/a&gt; that we saw in the previous articles. Even though we are using React as an example here, the workflow concepts are very similar for all the other modern frameworks.&lt;/p&gt;
+
+&lt;p&gt;For this React example, to start the “development server” we run the following:&lt;/p&gt;
+&lt;pre&gt;$ npm run start
+&lt;/pre&gt;
+&lt;p&gt;We should see something like this in our terminal:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-dev-server-local-1.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-528457 size-full&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-dev-server-local-1.png&quot; alt=&quot;Starting the development server&quot; width=&quot;572&quot; height=&quot;253&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;And our application should open in our default browser:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-localhost.png&quot;&gt;
+&lt;img class=&quot;aligncenter wp-image-528467 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-localhost-1024x620.png&quot; alt=&quot;Application running in a browser&quot; width=&quot;640&quot; height=&quot;388&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Now, if we make a change to a file, we should see the application running in the browser refresh with the latest changes.&lt;/p&gt;
+
+&lt;p&gt;As I said before, this is a common workflow for local development, but how can we get this workflow onto OpenShift?&lt;/p&gt;
+&lt;h3&gt;Development server on OpenShift&lt;/h3&gt;
+&lt;p&gt;In the &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/&quot;&gt;previous article&lt;/a&gt;, we took a look at the run phase of the S2I image. We saw that the default way of serving our web app is with the &lt;code&gt;serve&lt;/code&gt; module.&lt;/p&gt;
+
+&lt;p&gt;However, if we &lt;a href=&quot;https://github.com/nodeshift/ubi8-s2i-web-app/blob/master/s2i/run#L10&quot;&gt;look closely at that run script&lt;/a&gt;, we can see that we can specify an environment variable, &lt;code&gt;$NPM_RUN&lt;/code&gt;, which gives us the ability to execute a custom command.&lt;/p&gt;
+
+&lt;p&gt;For example, using the &lt;code&gt;nodeshift&lt;/code&gt; module, the command to deploy our application might look something like this:&lt;/p&gt;
+&lt;pre&gt;$ npx nodeshift --deploy.env NPM_RUN=&quot;yarn start&quot; --dockerImage=nodeshift/ubi8-s2i-web-app
+&lt;/pre&gt;
+&lt;p&gt;&lt;em&gt;Note: The above example has been shortened to show an idea.&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Here we are adding the &lt;code&gt;NPM_RUN&lt;/code&gt; environment variable to our deployment. This will tell our run phase to run &lt;code&gt;yarn start&lt;/code&gt;, which starts the React development server inside our OpenShift pod.&lt;/p&gt;
+
+&lt;p&gt;If you took a look at the log of the running pod, you might see something like this running:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2019/01/react-pod-dev-server.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-553467 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2019/01/react-pod-dev-server-1024x550.png&quot; alt=&quot;Log of the running pod&quot; width=&quot;640&quot; height=&quot;344&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Of course, this doesn’t really matter unless we can sync our local code with the code that is being watched on our remote cluster.&lt;/p&gt;
+&lt;h3&gt;Remote and local sync&lt;/h3&gt;
+&lt;p&gt;Luckily, we can use &lt;code&gt;nodeshift&lt;/code&gt; again to help us out. We can use the &lt;code&gt;watch&lt;/code&gt; command.&lt;/p&gt;
+
+&lt;p&gt;After we run the command to deploy our application’s development server, we can then run this command:&lt;/p&gt;
+&lt;pre&gt;$ npx nodeshift watch
+&lt;/pre&gt;
+&lt;p&gt;This will connect to the running pod we just created and sync our local files with our remote cluster, while also watching our local system for changes.&lt;/p&gt;
+
+&lt;p&gt;So if you were to update the &lt;code&gt;src/App.js&lt;/code&gt; file, that change will be detected and copied to the remote cluster, and the running development server will then refresh the browser.&lt;/p&gt;
+
+&lt;p&gt;For completeness, here are the full commands:&lt;/p&gt;
+&lt;pre&gt;$ npx nodeshift --strictSSL=false --dockerImage=nodeshift/ubi8-s2i-web-app --build.env YARN_ENABLED=true --expose --deploy.env NPM_RUN=&quot;yarn start&quot; --deploy.port 3000
+
+$ npx nodeshift watch --strictSSL=false
+&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;watch&lt;/code&gt; command is an abstraction on top of the &lt;code&gt;oc rsync&lt;/code&gt; command. To learn more about how that works, &lt;a href=&quot;https://docs.okd.io/latest/dev_guide/copy_files_to_container.html&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;check it out here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Even though the example we saw was using React, this technique also works with other frameworks. You just need to change the &lt;code&gt;NPM_RUN&lt;/code&gt; environment variable.&lt;/p&gt;
+&lt;h2&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;In this 3 part series, we saw how to deploy modern web applications to OpenShift in a few ways.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;In part one,&lt;/a&gt; we saw how to get started quickly with the new Web App S2I Image.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;Part 2 dove a little deeper&lt;/a&gt; into how the S2I image worked and how to use chained builds.&lt;/p&gt;
+
+&lt;p&gt;This last part was a brief overview of how you can run a development server on OpenShift, and the next talks about &lt;a href=&quot;https://developers.redhat.com/blog/2020/04/27/modern-web-applications-on-openshift-part-4-openshift-pipelines/&quot;&gt;OpenShift Pipelines and how this tool can be used as an alternative to a chained build&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Additional resources&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developers.redhat.com/books/deploying-openshift/&quot;&gt;Deploying to OpenShift: a guide for impatient developers&lt;/a&gt; (free ebook)&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developers.redhat.com/blog/2018/06/11/container-native-nodejs-istio-rhoar/&quot; rel=&quot;bookmark&quot;&gt;Building Container-Native Node.js Applications with Red Hat OpenShift Application Runtimes and Istio&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developers.redhat.com/blog/2018/05/15/debug-your-node-js-application-on-openshift-with-chrome-devtools/&quot; rel=&quot;bookmark&quot;&gt;How to Debug Your Node.js Application on OpenShift with Chrome DevTools&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developers.redhat.com/blog/2018/04/16/zero-express-openshift-3-commands/&quot; rel=&quot;bookmark&quot;&gt;Zero to Express on OpenShift in Three Commands&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developers.redhat.com/blog/2018/03/12/rhoar-nodejs-annoucement/&quot; rel=&quot;bookmark&quot;&gt;Announcing: Node.js General Availability in Red Hat OpenShift Application Runtimes&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developers.redhat.com/blog/2018/12/21/monitoring-node-js-applications-on-openshift-with-prometheus/&quot; rel=&quot;bookmark&quot;&gt;Monitoring Node.js Applications on OpenShift with Prometheus&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Other articles on &lt;a href=&quot;https://developers.redhat.com/topics/kubernetes/&quot;&gt;OpenShift and Kubernetes&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Lucas Holmquist</name><email>lholmqui@redhat.com</email></author><category term="Openshift" /><category term="Nodeshift" /><summary type="html">Welcome back to the final part of this multipart series about deploying modern web applications on Red Hat OpenShift. In the first post, we took a look at how to deploy a modern web application using the fewest commands.</summary></entry><entry><title type="html">Modern web applications on OpenShift: Part 2 – Using chained builds</title><link href="https://nodeshift.dev//blog/modern-web-part-2/" rel="alternate" type="text/html" title="Modern web applications on OpenShift: Part 2 – Using chained builds" /><published>2018-10-23T00:00:00+00:00</published><updated>2018-10-23T00:00:00+00:00</updated><id>https://nodeshift.dev//blog/modern-web-part-2</id><content type="html" xml:base="https://nodeshift.dev//blog/modern-web-part-2/">&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/&quot;&gt;In the previous article&lt;/a&gt;, we took a quick look at a new source-to-image (S2I) builder image designed for building and deploying modern web applications on &lt;a href=&quot;http://openshift.com/&quot;&gt;OpenShift&lt;/a&gt;. While the last article was focused on getting your app deployed quickly, this article will look at how to use the S2I image as a “pure” builder image and combine it with an OpenShift c&lt;em&gt;hained build&lt;/em&gt;.&lt;/p&gt;
+
+&lt;!--more--&gt;
+&lt;h2&gt;Pure builder image&lt;/h2&gt;
+&lt;p&gt;As mentioned in the previous post, most modern web apps now have a build step. Common workflows done in the build step are things like transpiling your code, concatenating multiple files, and minifying. Once these workflows are done, the resulting files, which are static HTML, JavaScript, and CSS, are put into an output folder. The location of the folder usually depends on the build tools you are using, but for something like React, the location is &lt;code&gt;./build&lt;/code&gt; (more on this location in a minute).&lt;/p&gt;
+&lt;h3&gt;Source-to-Image (S2I)&lt;/h3&gt;
+&lt;p&gt;This post isn’t going to go into the “what and how” of S2I; you can &lt;a href=&quot;https://docs.okd.io/latest/architecture/core_concepts/builds_and_image_streams.html#source-build&quot;&gt;read more here&lt;/a&gt;, but we should understand two of the phases that happen in order to better understand what the Web App Builder image is doing.&lt;/p&gt;
+&lt;h4&gt;Assemble phase&lt;/h4&gt;
+&lt;p&gt;The assemble phase is very similar to what happens when running &lt;code&gt;docker build&lt;/code&gt;. The result of this phase will be a new Docker image. This phase also happens when a build is run on OpenShift.&lt;/p&gt;
+
+&lt;p&gt;For the Web App Builder image, the &lt;a href=&quot;https://github.com/bucharest-gold/centos7-s2i-web-app/blob/master/s2i/assemble#L47&quot;&gt;assemble script&lt;/a&gt; is responsible for installing your app’s dependencies and running your build. By default, the builder image will use &lt;code&gt;npm run build&lt;/code&gt;, but that can be overridden by providing an &lt;code&gt;NPM_BUILD&lt;/code&gt; environment variable.&lt;/p&gt;
+
+&lt;p&gt;As I said before, the location of your “built” app depends on the build tools you are using. For example, React uses &lt;code&gt;./build&lt;/code&gt;, but an Angular app uses &lt;code&gt;project_name/dist&lt;/code&gt;. And, as you saw in the previous post, this output directory, which defaults to &lt;code&gt;build&lt;/code&gt;, can be overridden using the &lt;code&gt;OUTPUT_DIR&lt;/code&gt; environment variable. Since there are differences in output locations between frameworks, you copy the generated output into a common directory inside the image, &lt;code&gt;/opt/apt-root/output&lt;/code&gt;. This will be important further down this post, but first let’s take a quick look at the next phase, the run phase.&lt;/p&gt;
+&lt;h4&gt;Run phase&lt;/h4&gt;
+&lt;p&gt;This phase is run when &lt;code&gt;docker run&lt;/code&gt; is called on the newly created image from the assemble phase. This is also what is run during an OpenShift deployment. By default, the &lt;a href=&quot;https://github.com/bucharest-gold/centos7-s2i-web-app/blob/master/s2i/run&quot;&gt;run script&lt;/a&gt; will use the &lt;a href=&quot;https://www.npmjs.com/package/serve&quot;&gt;serve module&lt;/a&gt; to serve the static content located in the common output directory mentioned above.&lt;/p&gt;
+
+&lt;p&gt;While this works for getting your app deployed quickly, it is not really the recommended way of serving static content. Since we are really serving only static content, we don’t really even need Node.js installed in our image. We just need a web server.&lt;/p&gt;
+
+&lt;p&gt;This situation—where our building needs are different from our runtime needs—is where chained builds can help.&lt;/p&gt;
+&lt;h2&gt;Chained builds&lt;/h2&gt;
+&lt;p&gt;To quote the official OpenShift documentation on &lt;a href=&quot;https://docs.okd.io/latest/dev_guide/builds/advanced_build_operations.html#dev-guide-chaining-builds&quot;&gt;chained builds&lt;/a&gt;:&lt;/p&gt;
+&lt;blockquote&gt;&quot;Two builds can be chained together: one that produces the compiled artifact, and a second build that places that artifact in a separate image that runs the artifact.&quot;&lt;/blockquote&gt;
+&lt;p&gt;What this means is that we can use the Web App Builder image to run our build, and then we can use a web server image, like NGINX, to serve our content.&lt;/p&gt;
+
+&lt;p&gt;This allows us to use the Web App Builder image as a “pure” builder and also keep our runtime image small.&lt;/p&gt;
+
+&lt;p&gt;Let’s take a look at an example to see how this all comes together.&lt;/p&gt;
+
+&lt;p&gt;This &lt;a href=&quot;https://github.com/lholmquist/react-web-app&quot;&gt;example app&lt;/a&gt;, is a basic React application created using the &lt;code&gt;create-react-app&lt;/code&gt; CLI tool.&lt;/p&gt;
+
+&lt;p&gt;I’ve added an &lt;a href=&quot;https://github.com/lholmquist/react-web-app/blob/master/.openshiftio/application.yaml&quot;&gt;OpenShift template file&lt;/a&gt; to piece everything together.&lt;/p&gt;
+
+&lt;p&gt;Let’s take a look at some of the more important parts of this file.&lt;/p&gt;
+&lt;pre&gt;parameters:
+  - name: SOURCE_REPOSITORY_URL
+    description: The source URL for the application
+    displayName: Source URL
+    required: true
+  - name: SOURCE_REPOSITORY_REF
+    description: The branch name for the application
+    displayName: Source Branch
+    value: master
+    required: true
+  - name: SOURCE_REPOSITORY_DIR
+    description: The location within the source repo of the application
+    displayName: Source Directory
+    value: .
+    required: true
+  - name: OUTPUT_DIR
+    description: The location of the compiled static files from your web apps builder
+    displayName: Output Directory
+    value: build
+    required: false
+&lt;/pre&gt;
+&lt;p&gt;The parameter section should be pretty self-explanatory, but I want to call out the &lt;code&gt;OUTPUT_DIR&lt;/code&gt; parameter. For our React example, we don’t need to worry about it, since the default value is what React uses, but if you are using Angular or something else, you could change it.&lt;/p&gt;
+
+&lt;p&gt;Now let’s take a look at the image streams.&lt;/p&gt;
+&lt;pre&gt;- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: react-web-app-builder  // 1
+  spec: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: react-web-app-runtime  // 2
+  spec: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: web-app-builder-runtime // 3
+  spec:
+    tags:
+    - name: latest
+      from:
+        kind: DockerImage
+        name: nodeshift/ubi8-s2i-web-app:10.x
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: nginx-image-runtime // 4
+  spec:
+    tags:
+    - name: latest
+      from:
+        kind: DockerImage
+        name: 'centos/nginx-112-centos7:latest'
+&lt;/pre&gt;
+&lt;p&gt;First, let’s take a look at the third and fourth images. We can see that both are defined as Docker images, and we can see where they come from.&lt;/p&gt;
+
+&lt;p&gt;The third is the &lt;code&gt;web-app-builder&lt;/code&gt; image, &lt;code&gt;nodeshift/ubi8-s2i-web-app&lt;/code&gt;, which is using the 10.x tag from the &lt;a href=&quot;https://hub.docker.com/r/nodeshift/ubi8-s2i-web-app/&quot;&gt;Docker hub&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The fourth is an NGINX image (version 1.12) using the latest tag from the &lt;a href=&quot;https://hub.docker.com/r/centos/nginx-112-centos7/&quot;&gt;Docker hub&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Now let’s take a look at those first two images. Both images are empty to start. These images will be created during the build phase, but for completeness, let me explain what will go into each one.&lt;/p&gt;
+
+&lt;p&gt;The first image, &lt;code&gt;react-web-app-builder&lt;/code&gt;, will be the result of the “assemble” phase of the &lt;code&gt;web-app-builder-runtime&lt;/code&gt; image once it is combined with our source code. That is why I’ve named it “&lt;code&gt;-builder&lt;/code&gt;.”&lt;/p&gt;
+
+&lt;p&gt;The second image, &lt;code&gt;react-web-app-runtime&lt;/code&gt;, will be the result of combining the &lt;code&gt;nginx-image-runtime&lt;/code&gt; with the some of the files from the &lt;code&gt;react-web-app-builder&lt;/code&gt; image. This image will also be the image that is “deployed” and will contain only the web server and the static HTML, JavaScript, and CSS for the application.&lt;/p&gt;
+
+&lt;p&gt;This might sound a little confusing now, but once we look at the build configurations, things should be a little more clear.&lt;/p&gt;
+
+&lt;p&gt;In this template, there are two build configurations. Let’s take a look at them one at a time.&lt;/p&gt;
+&lt;pre&gt;  apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: react-web-app-builder
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: react-web-app-builder:latest // 1
+    source:   // 2
+      git:
+        uri: ${SOURCE_REPOSITORY_URL}
+        ref: ${SOURCE_REPOSITORY_REF}
+      contextDir: ${SOURCE_REPOSITORY_DIR}
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+          - name: OUTPUT_DIR // 3
+            value: ${OUTPUT_DIR}
+        from:
+          kind: ImageStreamTag
+          name: web-app-builder-runtime:latest // 4
+        incremental: true // 5
+      type: Source
+    triggers: // 6
+    - github:
+        secret: ${GITHUB_WEBHOOK_SECRET}
+      type: GitHub
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+&lt;/pre&gt;
+&lt;p&gt;The first one, &lt;code&gt;react-web-app-builder&lt;/code&gt; above, is pretty standard. We see that line 1 tells us the result of this build will be put into the &lt;code&gt;react-web-app-builder&lt;/code&gt; image, which we saw when we took a look at the image stream list above.&lt;/p&gt;
+
+&lt;p&gt;Next, line 2 is just telling us where the code is coming from. In this case, it is a git repository, and the location, &lt;code&gt;ref&lt;/code&gt;, and context directory are defined by the parameters we saw earlier.&lt;/p&gt;
+
+&lt;p&gt;Again, line 3, we saw in the &lt;code&gt;parameters&lt;/code&gt; section. This will add the &lt;code&gt;OUTPUT_DIR&lt;/code&gt; environment variable, which in our example will be &lt;code&gt;build&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Line 4 is just telling us to use the &lt;code&gt;web-app-builder-runtime&lt;/code&gt; image that we saw in the &lt;code&gt;ImageStream&lt;/code&gt; section.&lt;/p&gt;
+
+&lt;p&gt;Line 5 is saying we want to use an incremental build if the S2I image supports it. The Web App Builder image does support it. On the first run, once the assemble phase is complete, the image will save the &lt;code&gt;node_modules&lt;/code&gt; folder into an archive file. Then on subsequent runs, the image will un-archive that &lt;code&gt;node_modules&lt;/code&gt; folder, which will speed up build times.&lt;/p&gt;
+
+&lt;p&gt;The last thing to call out, line 6, is just a few triggers that are set up, so when something changes, this build can be kicked off without manual interaction.&lt;/p&gt;
+
+&lt;p&gt;As I said before, this is a pretty standard build configuration. Now let’s take a look at the second build configuration. Most of it is very similar to the first, but there is one important difference:&lt;/p&gt;
+&lt;pre&gt;apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: react-web-app-runtime
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: react-web-app-runtime:latest // 1
+    source: // 2
+      type: Image
+      images:
+        - from:
+            kind: ImageStreamTag
+            name: react-web-app-builder:latest // 3
+          paths:
+            - sourcePath: /opt/app-root/output/.  // 4
+              destinationDir: .  // 5
+
+    strategy: // 6
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nginx-image-runtime:latest
+        incremental: true
+      type: Source
+    triggers:
+    - github:
+        secret: ${GITHUB_WEBHOOK_SECRET}
+      type: GitHub
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange: {}
+    - type: ImageChange
+      imageChange:
+        from:
+          kind: ImageStreamTag
+          name: react-web-app-builder:latest // 7
+&lt;/pre&gt;
+&lt;p&gt;This second build configuration, &lt;code&gt;react-web-app-runtime&lt;/code&gt;, starts off in a fairly standard way.&lt;/p&gt;
+
+&lt;p&gt;Line 1 isn’t anything new. It is telling us that the result of this build will be put into the &lt;code&gt;react-web-app-runtime&lt;/code&gt; image.&lt;/p&gt;
+
+&lt;p&gt;As with the first build configuration, we have a source section, line 2, but this time we say our source is coming from an image. The image that it is coming from is the one we just created, &lt;code&gt;react-web-app-builder&lt;/code&gt; (specified in line 3). The files we want to use are located inside the image and that location is specified in line 4: &lt;code&gt;/opt/app-root/output/&lt;/code&gt;. If you remember, this is where our generated files from our app’s build step ended up.&lt;/p&gt;
+
+&lt;p&gt;The destination directory, specified in line 5, is just the current directory (this is all happening inside some magic OpenShift thing, not on your local computer).&lt;/p&gt;
+
+&lt;p&gt;The strategy section, line 6, is also similar to the first build configuration. This time, we are going to use the &lt;code&gt;nginx-image-runtime&lt;/code&gt; that we looked at in the &lt;code&gt;ImageStream&lt;/code&gt; section.&lt;/p&gt;
+
+&lt;p&gt;The final thing to point out is the trigger section, line 7, which will trigger this build anytime the &lt;code&gt;react-web-app-builder&lt;/code&gt; image changes.&lt;/p&gt;
+
+&lt;p&gt;The rest of the template is fairly standard deployment configuration, service, and route stuff, which we don’t need to go into. Note that the image that will be deployed will be the &lt;code&gt;react-web-app-runtime&lt;/code&gt; image.&lt;/p&gt;
+&lt;h2&gt;Deploying the application&lt;/h2&gt;
+&lt;p&gt;Now that we’ve taken a look at the template, let’s see how we can easily deploy this application.&lt;/p&gt;
+
+&lt;p&gt;We can use the OpenShift Client tool &lt;code&gt;oc&lt;/code&gt; to deploy our template:&lt;/p&gt;
+&lt;pre&gt;$ find . | grep openshiftio | grep application | xargs -n 1 oc apply -f
+
+$ oc new-app --template react-web-app -p SOURCE_REPOSITORY_URL=https://github.com/lholmquist/react-web-app
+&lt;/pre&gt;
+&lt;p&gt;The first command above is just an overly engineered way of finding the &lt;code&gt;./openshiftio/application.yaml&lt;/code&gt; template.&lt;/p&gt;
+
+&lt;p&gt;The second creates a new application based on that template.&lt;/p&gt;
+
+&lt;p&gt;Once those commands are run, we can see that there are two builds:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-web-app-build-2.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-526067 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-web-app-build-2-1024x521.png&quot; alt=&quot;Screen showing the two builds&quot; width=&quot;640&quot; height=&quot;326&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Back on the Overview screen, we should see the running pod:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-web-app-overview.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-526077 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-web-app-overview-1024x513.png&quot; alt=&quot;Screen showing the running pod&quot; width=&quot;640&quot; height=&quot;321&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Clicking the link should navigate to our application, which is the default React App page:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-web-app-web.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-526087 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-web-app-web-1024x487.png&quot; alt=&quot;Screen that is displayed after navigating to the app&quot; width=&quot;640&quot; height=&quot;304&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;Extra Credit&lt;/h2&gt;
+&lt;p&gt;For those who are into using Angular, here is an &lt;a href=&quot;https://github.com/lholmquist/angular-web-app&quot;&gt;example of that&lt;/a&gt;.
+The template is mostly the same, except for that &lt;code&gt;OUTPUT_DIR&lt;/code&gt; variable.&lt;/p&gt;
+&lt;h2&gt;Extra Extra Credit&lt;/h2&gt;
+&lt;p&gt;This post showed how to use the NGINX image as our web server, but it’s fairly easy to swap that out if you wanted to use an Apache server. It can actually be done in one or maybe two (for completeness) steps.&lt;/p&gt;
+
+&lt;p&gt;All you need to do is in the template file, swap out the &lt;a href=&quot;https://github.com/lholmquist/react-web-app/blob/master/.openshiftio/application.yaml#L66&quot;&gt;NGINX image&lt;/a&gt; for the &lt;a href=&quot;https://hub.docker.com/r/centos/httpd-24-centos7/&quot;&gt;Apache image&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;While the first post in this series showed how to quickly get a modern web application on OpenShift, this post went deeper into what the Web App Builder image is doing and how to combine it, using a chained build, with a pure web server such as NGINX for a more production-ready build.&lt;/p&gt;
+
+&lt;p&gt;In the next and final (probably) post, we will take a look at how to run our web application’s development server on OpenShift, while keeping our local and remote files in sync.&lt;/p&gt;
+&lt;h2&gt;Series overview&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;Part 1: &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/&quot;&gt;How to deploy modern web apps using the fewest steps&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Part 2: &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/&quot;&gt;How to combine this new S2I image with a current HTTP server image&lt;/a&gt;, like NGINX, using an OpenShift chained build for a more production-ready deployment&lt;/li&gt;
+  &lt;li&gt;Part 3: &lt;a href=&quot;https://developers.redhat.com/blog/2019/01/17/modern-web-applications-on-openshift-part-3-openshift-as-a-development-environment/&quot;&gt;How to run your app's development server on OpenShift while syncing with your local file system&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Additional resources&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developers.redhat.com/books/deploying-openshift/&quot;&gt;Deploying to OpenShift: a guide for impatient developers&lt;/a&gt;: free ebook&lt;/li&gt;
+  &lt;li&gt;Information on &lt;a href=&quot;https://developers.redhat.com/topics/kubernetes/&quot;&gt;OpenShift and Kubernetes&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Lucas Holmquist</name><email>lholmqui@redhat.com</email></author><category term="Openshift" /><category term="Nodeshift" /><summary type="html">In the previous article, we took a quick look at a new source-to-image (S2I) builder image designed for building and deploying modern web applications on OpenShift. While the last article was focused on getting your app deployed quickly, this article will look at how to use the S2I image as a “pure” builder image and combine it with an OpenShift chained build.</summary></entry><entry><title type="html">Modern web applications on OpenShift: Part 1 – Web apps in two commands</title><link href="https://nodeshift.dev//blog/modern-web-part-1/" rel="alternate" type="text/html" title="Modern web applications on OpenShift: Part 1 – Web apps in two commands" /><published>2018-10-04T00:00:00+00:00</published><updated>2018-10-04T00:00:00+00:00</updated><id>https://nodeshift.dev//blog/modern-web-part-1</id><content type="html" xml:base="https://nodeshift.dev//blog/modern-web-part-1/">&lt;p&gt;In this multi-part series, we will take a look at how to deploy modern web applications, like React and Angular apps, to &lt;a href=&quot;http://openshift.com/&quot;&gt;Red Hat OpenShift&lt;/a&gt; using a new source-to-image (S2I) builder image.&lt;/p&gt;
+
+&lt;p&gt;Series overview:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Part 1: How to deploy modern web apps using the fewest steps&lt;/li&gt;
+  &lt;li&gt;Part 2: &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/&quot;&gt;How to combine this new S2I image with a current HTTP server image&lt;/a&gt;, like NGINX, using an OpenShift chained build for a more production-ready deployment&lt;/li&gt;
+  &lt;li&gt;Part 3: How to run your app's development server on OpenShift while syncing with your local file system&lt;/li&gt;
+&lt;/ul&gt;
+&lt;!--more--&gt;
+&lt;h2&gt;Some initial setup&lt;/h2&gt;
+&lt;p&gt;If you want to follow along, there are some prerequisites. You’ll need a running instance of OpenShift. I’ll be using minishift which allows you to run OpenShift on your Windows, Mac, or Linux desktop in a VM. To get minishift, download &lt;a href=&quot;https://developers.redhat.com/products/cdk/overview/&quot;&gt;Red Hat Container Development Kit (CDK)&lt;/a&gt;.  Follow&lt;a href=&quot;https://developers.redhat.com/products/cdk/hello-world/&quot;&gt; these instructions&lt;/a&gt; to install and getting minishift running. For more information see the &lt;a href=&quot;https://developers.redhat.com/products/cdk/docs-and-apis/&quot;&gt;CDK documentation&lt;/a&gt;, and the &lt;a href=&quot;https://docs.okd.io/latest/minishift/index.html&quot;&gt;documentation on OKD.io&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Once minishift is running, you need to make sure you are logged in and have a project set up, which you can do using code like this:&lt;/p&gt;
+&lt;pre&gt;$ oc login
+
+$ oc new-project web-apps
+&lt;/pre&gt;
+&lt;p&gt;I also assume you have Node.js 8+ and npm 5.2+ installed.&lt;/p&gt;
+
+&lt;p&gt;If all you want to see are the two commands, skip to the “Summary” section.&lt;/p&gt;
+&lt;h2&gt;What is a modern web application?&lt;/h2&gt;
+&lt;p&gt;Before we begin, we should probably define what exactly a modern web application is and how it differs from what I like to call a “pure” Node.js application.&lt;/p&gt;
+
+&lt;p&gt;To me, a modern web application is something like React, Angular, or Ember, where there is a build step that produces static HTML, JavaScript, and CSS. This build step usually does a few different tasks, like concatenation, transpilation (Babel or Typescript), and minifying of the files. Each of the major frameworks has its own build process and pipeline, but tools like Webpack, Grunt, and Gulp also fall into this category. No matter what tool is used, they all use Node.js to run the build processes.&lt;/p&gt;
+
+&lt;p&gt;But the static content that is generated (compiled) doesn’t necessarily need a node process to serve it. Yes, you could use something like the &lt;a href=&quot;https://www.npmjs.com/package/serve&quot;&gt;serve module&lt;/a&gt;, which is nice for development since you can see your site quickly, but for production deployments, it is usually recommend to use something like NGINX or Apache HTTP Server.&lt;/p&gt;
+
+&lt;p&gt;A “pure” node application, on the other hand, will use a Node.js process to run and can be something like an &lt;a href=&quot;http://expressjs.com/&quot;&gt;Express.js application&lt;/a&gt; (that is, a REST API server), and there isn’t usually a build step (I know, I know: Typescript is a thing now). Development dependencies are usually not installed since we only want the dependencies that the app uses to run.&lt;/p&gt;
+
+&lt;p&gt;To see an example of deploying a “pure” node app to OpenShift quickly using our Node.js S2I image, check out my post on &lt;a href=&quot;https://developers.redhat.com/blog/2018/04/16/zero-express-openshift-3-commands/&quot;&gt;deploying an Express.js application to OpenShift&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Deploying a web app to OpenShift&lt;/h2&gt;
+&lt;p&gt;Now that we understand the difference between a modern web application and a Node.js application, let’s see how we go about getting our web app on OpenShift.&lt;/p&gt;
+
+&lt;p&gt;For this post, we will deploy both a React and a modern Angular application. We can create both projects pretty quickly using their respective CLI tools, &lt;code&gt;create-react-app&lt;/code&gt; and&lt;code&gt; @angular/cli.&lt;/code&gt; This will count as one of the two commands I referred to in the title.&lt;/p&gt;
+&lt;h3&gt;React App&lt;/h3&gt;
+&lt;p&gt;Let’s start with the React application. If you have &lt;code&gt;create-react-app&lt;/code&gt; installed globally, great. But if not, then you can run the command using &lt;code&gt;npx&lt;/code&gt; like this:&lt;/p&gt;
+&lt;pre&gt;$ npx create-react-app react-web-app
+
+&lt;/pre&gt;
+&lt;p&gt;&lt;i&gt;Note: npx is a tool that comes with npm 5.2+ to run one-off commands. Check out &lt;a href=&quot;https://www.npmjs.com/package/npx&quot;&gt;more here&lt;/a&gt;.&lt;/i&gt;&lt;/p&gt;
+
+&lt;p&gt;This command will create a new React app, and you should see something like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/create-react-app-success.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-521627 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/create-react-app-success-1024x353.png&quot; alt=&quot;Screenshot of what you see after successfully creating a React app&quot; width=&quot;640&quot; height=&quot;221&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Assuming you are in the newly created project directory, you can now run the second command to deploy the app to OpenShift:&lt;/p&gt;
+&lt;pre&gt;$ npx nodeshift --strictSSL=false --dockerImage=nodeshift/ubi8-s2i-web-app --imageTag=10.x --build.env YARN_ENABLED=true --expose
+&lt;/pre&gt;
+&lt;p&gt;Your OpenShift web console will look something like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/react-quick-running.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-521727 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/react-quick-running-1024x523.png&quot; alt=&quot;Screenshot of OpenShift web console after deploying the React app&quot; width=&quot;640&quot; height=&quot;327&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;And here’s what the web console looks like when you run the application:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/react-on-openshift.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-521737 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/react-on-openshift-1024x566.png&quot; alt=&quot;Screenshot of what the web console looks like when you run the React app&quot; width=&quot;640&quot; height=&quot;354&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Before we get into the Angular example, let’s see what that last command was doing.&lt;/p&gt;
+
+&lt;p&gt;First, we see &lt;code&gt;npx nodeshift&lt;/code&gt;. We are using npx to run the nodeshift module. As I’ve mentioned in previous posts, &lt;a href=&quot;https://www.npmjs.com/package/nodeshift&quot;&gt;nodeshift&lt;/a&gt; is a module for easily deploying node apps to OpenShift.&lt;/p&gt;
+
+&lt;p&gt;Next, let’s see what options are being passed to nodeshift. The first is &lt;code&gt;--strictSSL=false&lt;/code&gt;. Since we are using minishift, which is using a self-signed certificate, we need to tell nodeshift (really, we are telling the request library, which is used under the covers), about this so a security error isn’t thrown.&lt;/p&gt;
+
+&lt;p&gt;Next is &lt;code&gt;--dockerImage=nodeshift/ubi8-s2i-web-app --imageTag=10.x&lt;/code&gt;. This tells nodeshift we want to use the new &lt;a href=&quot;https://hub.docker.com/r/nodeshift/ubi8-s2i-web-app/&quot;&gt;Web App Builder image&lt;/a&gt; and we want to use its 10.x tag.&lt;/p&gt;
+
+&lt;p&gt;Next, we want to tell the S2I image that we want to use yarn: &lt;code&gt;--build.env YARN_ENABLED=true&lt;/code&gt;. And finally, the &lt;code&gt;--expose&lt;/code&gt; flag tells nodeshift to create an OpenShift route for us, so we can get a publicly available link to our application.&lt;/p&gt;
+
+&lt;p&gt;Since this is a “get on OpenShift quickly” post, the S2I image uses the &lt;a href=&quot;https://www.npmjs.com/package/serve&quot;&gt;serve module&lt;/a&gt; to serve the generated static files. In a later post, we will see how to use this S2I image with NGINX.&lt;/p&gt;
+&lt;h3&gt;Angular App&lt;/h3&gt;
+&lt;p&gt;Now let’s create an Angular application. First, we need to create our new application using the Angular CLI. Again, if you don’t have it installed globally, you can run it with npx:&lt;/p&gt;
+&lt;pre&gt;$ npx @angular/cli new angular-web-app
+&lt;/pre&gt;
+&lt;p&gt;This will create a new Angular project, and as with the React example, we can run another command to deploy:&lt;/p&gt;
+&lt;pre&gt;$ npx nodeshift --strictSSL=false --dockerImage=nodeshift/ubi8-s2i-web-app --imageTag=10.x --build.env OUTPUT_DIR=dist/angular-web-app --expose
+&lt;/pre&gt;
+&lt;p&gt;Again, similar to the React application, your OpenShift web console will look something like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/angular-quick.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-521767 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/angular-quick-1024x520.png&quot; alt=&quot;Screenshot of the OpenShift web console after deploying an Angular app&quot; width=&quot;640&quot; height=&quot;325&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;And here’s what the web console looks like when you run the application:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/angular-on-openshift.png&quot;&gt;&lt;img class=&quot;aligncenter wp-image-521777 size-large&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/09/angular-on-openshift-1024x561.png&quot; alt=&quot;Screenshot of what the web console looks like when you run the Angular app&quot; width=&quot;640&quot; height=&quot;351&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Let’s take a look at that command again. Even though it looks very similar to the command we used for the React app, there is are some very important differences.&lt;/p&gt;
+
+&lt;p&gt;The differences are with the &lt;code&gt;build.env&lt;/code&gt; flag: &lt;code&gt;--build.env OUTPUT_DIR=dist/angular-web-app&lt;/code&gt;. There are two things different here.&lt;/p&gt;
+
+&lt;p&gt;First, we removed the &lt;code&gt;YARN_ENABLED&lt;/code&gt; variable, since we aren’t using yarn for the Angular project.&lt;/p&gt;
+
+&lt;p&gt;The second is the addition of the &lt;code&gt;OUTPUT_DIR=dist/angular-web-app&lt;/code&gt; variable. So, by default, the S2I image will look for your compiled code in the &lt;code&gt;build&lt;/code&gt; directory. React uses &lt;code&gt;build&lt;/code&gt; by default; that is why we didn’t set it for that example. However, Angular uses something different for its compiled output. It uses &lt;code&gt;dist/&amp;lt;PROJECT_NAME&amp;gt;&lt;/code&gt;, which in our case is &lt;code&gt;dist/angular-web-app&lt;/code&gt;.&lt;/p&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;For those who skipped to this section to see the two commands to run, here they are:&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;React:&lt;/strong&gt;&lt;/p&gt;
+&lt;pre&gt;$ npx create-react-app react-web-app
+
+$ npx nodeshift --strictSSL=false --dockerImage=nodeshift/ubi8-s2i-web-app --imageTag=10.x --build.env YARN_ENABLED=true --expose
+&lt;/pre&gt;
+&lt;p&gt;&lt;strong&gt;Angular:&lt;/strong&gt;&lt;/p&gt;
+&lt;pre&gt;$ npx @angular/cli new angular-web-app
+
+$ npx nodeshift --strictSSL=false --dockerImage=nodeshift/ubi8-s2i-web-app --imageTag=10.x --build.env OUTPUT_DIR=dist/angular-web-app --expose
+&lt;/pre&gt;
+&lt;h2&gt;Additional resources&lt;/h2&gt;
+&lt;p&gt;In this article, we saw how quickly and easily we can deploy a modern web app to OpenShift using the new S2I Web App Builder image. The examples use the community version of the image, but very soon there will be an official &lt;a href=&quot;https://developers.redhat.com/products/rhoar/overview/&quot;&gt;Red Hat Openshift Application Runtime (RHOAR)&lt;/a&gt; tech preview release. So watch out for that.&lt;/p&gt;
+
+&lt;p&gt;In the coming articles, we will take a deeper look at what the image is actually doing and how we can use more of its advanced features, as well as some advanced features of OpenShift, to deploy a more production-worthy application.&lt;/p&gt;
+
+&lt;p&gt;Read &lt;a href=&quot;https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/&quot;&gt;part 2 of this series&lt;/a&gt; to learn how to combine this new S2I image with a current HTTP server image like NGINX, using an OpenShift chained build for a more production-ready deployment.&lt;/p&gt;
+
+&lt;p&gt;Read &lt;a href=&quot;https://developers.redhat.com/blog/2019/01/17/modern-web-applications-on-openshift-part-3-openshift-as-a-development-environment/&quot;&gt;part 3 of this series&lt;/a&gt; to see how you can run your app’s “development workflow” on OpenShift.&lt;/p&gt;
+
+&lt;p&gt;For more information, download the free ebook &lt;em&gt;&lt;a href=&quot;https://developers.redhat.com/books/deploying-openshift/&quot;&gt;Deploying to OpenShift&lt;/a&gt;&lt;/em&gt;.&lt;/p&gt;</content><author><name>Lucas Holmquist</name><email>lholmqui@redhat.com</email></author><category term="Openshift" /><category term="Nodeshift" /><summary type="html">In this multi-part series, we will take a look at how to deploy modern web applications, like React and Angular apps, to Red Hat OpenShift using a new source-to-image (S2I) builder image.</summary></entry><entry><title type="html">Zero to Express on OpenShift in Three Commands</title><link href="https://nodeshift.dev//blog/zero-to-express/" rel="alternate" type="text/html" title="Zero to Express on OpenShift in Three Commands" /><published>2018-04-16T00:00:00+00:00</published><updated>2018-04-16T00:00:00+00:00</updated><id>https://nodeshift.dev//blog/zero-to-express</id><content type="html" xml:base="https://nodeshift.dev//blog/zero-to-express/">&lt;p&gt;With the recent &lt;a href=&quot;https://developers.redhat.com/blog/2018/03/12/rhoar-nodejs-annoucement/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;announcement that Node.js is generally available as part of Red Hat OpenShift Application Runtimes,&lt;/a&gt; I wanted to see how easy it was to deploy an &lt;a href=&quot;https://expressjs.com/&quot;&gt;Express.js&lt;/a&gt; app on OpenShift.&lt;/p&gt;
+&lt;h3&gt;Getting Started&lt;/h3&gt;
+&lt;p&gt;Before we start, there are some required prerequisites. You need to have &lt;a href=&quot;https://nodejs.org&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;Node 8.x&lt;/a&gt; and &lt;a href=&quot;https://www.npmjs.com/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;npm 5.2 &lt;/a&gt; or greater installed. npm comes with the official node distribution, so if you install Node from &lt;a href=&quot;https://nodejs.org&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;Nodejs.org&lt;/a&gt;, you should be good.&lt;/p&gt;
+
+&lt;p&gt;You’ll also need access to an OpenShift environment or the Red Hat Container Development Kit (CDK) minishift environment. For this example, I’ll be using minishift. You can find instructions on getting minishift up and running &lt;a href=&quot;https://developers.redhat.com/products/cdk/hello-world/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;here&lt;/a&gt;. For my local minishift, I start it with this command:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ minishift start --memory=6144 --vm-driver virtualbox&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;You also need to be logged in to whatever OpenShift cluster you are using (OpenShift or minishift) using &lt;code&gt;oc login&lt;/code&gt;.&lt;/p&gt;
+&lt;h3&gt;Spoiler Alert&lt;/h3&gt;
+&lt;p&gt;For those who don’t want to read the whole post and don’t want to scroll to the end, here are the three commands that need to be run:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx express-generator . &lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx json -I -f package.json -e 'this.scripts.start=&quot;PORT=8080 node ./bin/www&quot;'&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx nodeshift --strictSSL=false --expose&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3&gt;Generate an Express App&lt;/h3&gt;
+&lt;p&gt;What is Express, you say? Well, according to the &lt;a href=&quot;https://expressjs.com/&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;Express website&lt;/a&gt;, Express is a “Fast, unopinionated, minimalist web framework for Node.js.”&lt;/p&gt;
+
+&lt;p&gt;One pretty cool thing about Express is the &lt;i&gt;Express application generator tool&lt;/i&gt;: &lt;code&gt;express-generator&lt;/code&gt;. This is a command-line tool that &lt;a href=&quot;https://expressjs.com/en/starter/generator.html&quot;&gt;“quickly creates an application skeleton”&lt;/a&gt;. But wait: didn’t I just say that Express was unopinionated? It is, but this is the opinionated skeleton creator. ¯&lt;em&gt;(ツ)&lt;/em&gt;/¯&lt;/p&gt;
+
+&lt;p&gt;The Express website recommends installing the &lt;code&gt;express-generator&lt;/code&gt; module globally, like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;npm install -g express-generator&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;But we aren’t going to do that. Instead, we are going to use a fairly new feature from npm, called &lt;code&gt;npx&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;npx&lt;/code&gt; gives us the ability to run one-off commands with out having to install things globally. There is more to &lt;code&gt;npx&lt;/code&gt; that just that feature, so if you are interested in all the cool things &lt;code&gt;npx&lt;/code&gt; can do, check it out &lt;a href=&quot;https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;With this new-found knowledge, we can now generate our Express app like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx express-generator .&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Let’s take a quick look at what is actually happening with this command. First, &lt;code&gt;npx&lt;/code&gt; sees that we want to run the &lt;code&gt;express-generator&lt;/code&gt; command, so &lt;code&gt;npx&lt;/code&gt; does some magic to see if we have it installed locally (in our current directory), and then it checks our global modules. Because it is not there, it downloads it for this one-time use.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;express-generator&lt;/code&gt; is run in our current directory, which is denoted by that &lt;strong&gt;.&lt;/strong&gt; at the end of the command.&lt;/p&gt;
+
+&lt;p&gt;The result should look something like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;alignnone size-large wp-image-475687&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/03/express-quick-example-screenshot-1-1024x524.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;express-generator&lt;/code&gt; also gives us some instructions on how to install the dependencies and then how to run the application. You can skip that for now.&lt;/p&gt;
+&lt;h3&gt;Update the package.json File&lt;/h3&gt;
+&lt;p&gt;Now that we created our basic Express application using one command, we need to add one thing to &lt;code&gt;package.json&lt;/code&gt; before we deploy our app.&lt;/p&gt;
+
+&lt;p&gt;We need to pass a &lt;code&gt;PORT&lt;/code&gt; environment variable to our start script.&lt;/p&gt;
+
+&lt;p&gt;One way to do this is to open a text editor and do it that way, but that would add a few more steps. To do this in one command, we can use the &lt;a href=&quot;https://www.npmjs.com/package/json&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;json module&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx json -I -f package.json -e 'this.scripts.start=&quot;PORT=8080 node ./bin/www&quot;'&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;As before, we are using the &lt;code&gt;npx&lt;/code&gt; command to allow us to not have to install the &lt;code&gt;json&lt;/code&gt; module globally.&lt;/p&gt;
+
+&lt;p&gt;Let’s see what is going on with the options passed to the &lt;code&gt;json&lt;/code&gt; module.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;-I -f package.json&lt;/code&gt; means that we want to edit in place the file &lt;code&gt;package.json&lt;/code&gt;. The &lt;code&gt;-e&lt;/code&gt; option will execute some JavaScript code, which in this case is setting the &lt;code&gt;scripts.start&lt;/code&gt; property from &lt;code&gt;package.json&lt;/code&gt; with the string &lt;code&gt;&quot;PORT=8080 node ./bin/www&quot;&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;For more information on the &lt;code&gt;json&lt;/code&gt; module, check out the &lt;a href=&quot;http://trentm.com/json/&quot;&gt;documentation&lt;/a&gt;.&lt;/p&gt;
+&lt;h3&gt;Deploy the Application to OpenShift&lt;/h3&gt;
+&lt;p&gt;And now, the final step is to run this command:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx nodeshift --strictSSL=false --expose&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Here, we are using the &lt;a href=&quot;https://www.npmjs.com/package/nodeshift&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;&gt;nodeshift module&lt;/a&gt; to deploy our application. &lt;code&gt;nodeshift&lt;/code&gt; is a CLI or programmable API that helps with deploying Node apps to OpenShift.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;npx&lt;/code&gt; is doing the same thing as in the previous examples.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;nodeshift&lt;/code&gt; is using two flags. The first, &lt;code&gt;strictSSL=false&lt;/code&gt;, is needed when deploying to minishift or someplace that is using a self-signed certificate. If we were deploying to a real OpenShift cluster, we could leave that out.&lt;/p&gt;
+
+&lt;p&gt;The second flag, &lt;code&gt;expose&lt;/code&gt;, tells &lt;code&gt;nodeshift&lt;/code&gt; that it should create a &lt;a href=&quot;https://docs.openshift.com/online/architecture/networking/routes.html&quot;&gt;&lt;em&gt;route&lt;/em&gt;&lt;/a&gt; for us, which allows our application to be seen by the outside world. (If you are running minishift locally, only you can see the application.)&lt;/p&gt;
+
+&lt;p&gt;The output of this command will look something like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;alignnone size-large wp-image-475707&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/03/express-quick-example-nodeshift-output-1024x633.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;If we head over to the web UI of our running minishift, we can see that the created pod is now running successfully.&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;alignnone size-large wp-image-475727&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/03/express-quick-example-ui-1024x518.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Then, if we click the link, we can see our example app running:&lt;/p&gt;
+
+&lt;p&gt;&lt;img class=&quot;alignnone size-full wp-image-475737&quot; src=&quot;https://developers.redhat.com/blog/wp-content/uploads/2018/03/express-quick-example-express.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Note:&lt;/strong&gt; The example above will use the latest &lt;a href=&quot;https://hub.docker.com/r/bucharestgold/centos7-s2i-nodejs/&quot;&gt;community s2i images&lt;/a&gt; (9.x at the time of this writing). To use a fully supported version of Node.js on OpenShift all you need is to add the “–dockerImage” flag.&lt;/p&gt;
+
+&lt;p&gt;This will integrate the Red Hat OpenShift Application Runtime version Node.js (8.x) which you can get full production and developer support as part of our product subscription.&lt;/p&gt;
+
+&lt;p&gt;This might look something like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx nodeshift --strictSSL=false --expose --dockerImage=registry.access.redhat.com/rhoar-nodejs/nodejs-8&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3&gt;Recap&lt;/h3&gt;
+&lt;p&gt;In this post, the commands were a little spread out, so let’s see them all together again:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx express-generator .&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx json -I -f package.json -e 'this.scripts.start=&quot;PORT=8080 node ./bin/www&quot;'&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;$ npx nodeshift --strictSSL=false --expose&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;The example app we created was very simple, but it shows how quickly you can get started using Node.js on OpenShift.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;(Edit: November 22, 2019) The Node images used in this post, both community centos7 and product, are no longer being updated and maintained. For community images, please use the Universal Base Image (UBI)-based node images located here: &lt;a href=&quot;http://registry.access.redhat.com/ubi8/nodejs-10&quot;&gt;registry.access.redhat.com/ubi8/nodejs-10&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;For a fully supported Product version of Node.js, please check out the Red Hat Software Collections Node.js image, &lt;a href=&quot;https://access.redhat.com/containers/#/registry.access.redhat.com/rhscl/nodejs-10-rhel7&quot;&gt;RH SCL Node.js&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;</content><author><name>Lucas Holmquist</name><email>lholmqui@redhat.com</email></author><category term="Openshift" /><category term="Nodeshift" /><summary type="html">With the recent announcement that Node.js is generally available as part of Red Hat OpenShift Application Runtimes, I wanted to see how easy it was to deploy an Express.js app on OpenShift. Getting Started Before we start, there are some required prerequisites. You need to have Node 8.x and npm 5.2 or greater installed. npm comes with the official node distribution, so if you install Node from Nodejs.org, you should be good.</summary></entry></feed>

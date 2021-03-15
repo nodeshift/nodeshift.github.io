@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Modern web applications on OpenShift: Part 3 -- Openshift as a development environment</title>
+  <!-- <script id="adobe_dtm" src="//www.redhat.com/dtm.js" type="text/javascript"></script> -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <meta name="description" content="GET YOUR NODE.JS ON OPENSHIFT - Simplify your development of Node.js applications on Kubernetes and Openshift with the Nodeshift Project.">
+  
+    <link rel="cannonical" href="https://developers.redhat.com/blog/2019/01/17/modern-web-applications-on-openshift-part-3-openshift-as-a-development-environment/">
+  
+  <link rel="shortcut icon" type="image/png" href="/favicon.ico" >
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css" integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.11.0/styles/default.min.css">
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-174376207-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-174376207-1');
+</script>
+
+</head>
+
+
+<body class="post">
+  <div class="nav-content">
+  <div class="grid-wrapper">
+    <div class="width-12-12">
+      <div class="header navigation nav-wrapper">
+        <div class="logo-wrapper">
+          <a href="/"><img class="project-logo" src="/assets/images/nodeshift_logo.png"></a>
+        </div>
+        <div class="nav-container">
+          <nav>
+            <div class="nav-mobile"><a id="nav-toggle" href="#!"><span></span></a></div>
+            <ul class="nav-list">
+              <li>
+                <a href="/getstarted/" class="">GET STARTED</a>
+              </li>
+              <li>
+                <a href="/blog/" class="active">BLOG</a>
+              </li>
+              <li>
+                <a href="https://github.com/nodeshift/"><img src="/assets/images/github_logo.png"  title="github"></a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+  <div class="site-content">
+    <div class="post grid-wrapper">
+  <div class="grid__item width-10-12">
+    <h1>Modern web applications on OpenShift: Part 3 -- Openshift as a development environment</h1>
+  </div>
+  <div class="grid__item width-8-12 width-12-12-m byline-wrapper">
+    
+    
+      <img class="headshot" src="https://www.gravatar.com/avatar/4120ab1fe80040d03eb790c2efafadc9">
+    
+    <p class="byline">By Lucas Holmquist | January 07, 2019</p>
+  </div>
+  <div class="grid__item width-4-12 width-12-12-m"><div class="share-page">
+  <a class="share-linkedin" href="https://www.linkedin.com/shareArticle?mini=true&url=https://nodeshift.dev/&title=" rel="nofollow" target="_blank" title="Share on LinkedIn">
+    <img src="/assets/images/share-page/icons_social-linkedin.png"/>
+  </a>
+  <a class="share-twitter" href="https://twitter.com/intent/tweet?text=&url=https://nodeshift.dev/&via=&related=" rel="nofollow" target="_blank" title="Share on Twitter">
+    <img src="/assets/images/share-page/icons_social-twitter.png"/>
+  </a>
+  <a class="share-facebook" href="https://facebook.com/sharer.php?u=https://nodeshift.dev/" rel="nofollow" target="_blank" title="Share on Facebook">
+    <img src="/assets/images/share-page/icons_social-facebook.png"/>
+  </a>
+  <a class="share-reddit" href="http://www.reddit.com/submit?url=https://nodeshift.dev/" onclick="window.open(this.href, 'pop-up', 'left=20,top=20,width=900,height=500,toolbar=1,resizable=0'); return false;" title="Share on Reddit" >
+    <img src="/assets/images/share-page/icons_social-reddit.png"/>
+  </a>
+  <a class="share-email" href="mailto:?subject=&amp;body= https://nodeshift.dev/" title="Share via Email" >
+    <img src="/assets/images/share-page/icons_social-email.png"/>
+  </a>
+</div>
+</div>
+  <div class="grid__item width-12-12">
+    <p>Welcome back to the final part of this multipart series about deploying modern web applications on Red <a href="http://openshift.com/">Hat OpenShift</a>. In the <a href="https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/">first post</a>, we took a look at how to deploy a modern web application using the fewest commands.</p>
+
+<p>In the <a href="https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/">second part</a>, we took a deeper look into how the new source-to-image (S2I) web app builder works and how to use it as part of a chained build.</p>
+
+<p>This third and final part will take a look at how you can run your app’s “development workflow” on OpenShift.<!--more--></p>
+<h2>Development workflow</h2>
+<p>As mentioned in the <a href="https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/">first post</a>, a common development workflow for modern web applications is to run a “development server” that watches your local files for changes. When a change occurs, the application’s build is run and the browser is refreshed with your updated app.</p>
+
+<p>Most of the modern frameworks have this “development server” built into their respective CLI tools.</p>
+<h3>A local example</h3>
+<p>Let’s first start with running our application locally, so we can see how this workflow is supposed to work. We are going to continue with the <a href="https://github.com/lholmquist/react-web-app">React example</a> that we saw in the previous articles. Even though we are using React as an example here, the workflow concepts are very similar for all the other modern frameworks.</p>
+
+<p>For this React example, to start the “development server” we run the following:</p>
+<pre>$ npm run start
+</pre>
+<p>We should see something like this in our terminal:</p>
+
+<p><a href="https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-dev-server-local-1.png"><img class="aligncenter wp-image-528457 size-full" src="https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-dev-server-local-1.png" alt="Starting the development server" width="572" height="253" /></a></p>
+
+<p>And our application should open in our default browser:</p>
+
+<p><a href="https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-localhost.png">
+<img class="aligncenter wp-image-528467 size-large" src="https://developers.redhat.com/blog/wp-content/uploads/2018/10/react-localhost-1024x620.png" alt="Application running in a browser" width="640" height="388" /></a></p>
+
+<p>Now, if we make a change to a file, we should see the application running in the browser refresh with the latest changes.</p>
+
+<p>As I said before, this is a common workflow for local development, but how can we get this workflow onto OpenShift?</p>
+<h3>Development server on OpenShift</h3>
+<p>In the <a href="https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/">previous article</a>, we took a look at the run phase of the S2I image. We saw that the default way of serving our web app is with the <code>serve</code> module.</p>
+
+<p>However, if we <a href="https://github.com/nodeshift/ubi8-s2i-web-app/blob/master/s2i/run#L10">look closely at that run script</a>, we can see that we can specify an environment variable, <code>$NPM_RUN</code>, which gives us the ability to execute a custom command.</p>
+
+<p>For example, using the <code>nodeshift</code> module, the command to deploy our application might look something like this:</p>
+<pre>$ npx nodeshift --deploy.env NPM_RUN="yarn start" --dockerImage=nodeshift/ubi8-s2i-web-app
+</pre>
+<p><em>Note: The above example has been shortened to show an idea.</em></p>
+
+<p>Here we are adding the <code>NPM_RUN</code> environment variable to our deployment. This will tell our run phase to run <code>yarn start</code>, which starts the React development server inside our OpenShift pod.</p>
+
+<p>If you took a look at the log of the running pod, you might see something like this running:</p>
+
+<p><a href="https://developers.redhat.com/blog/wp-content/uploads/2019/01/react-pod-dev-server.png"><img class="aligncenter wp-image-553467 size-large" src="https://developers.redhat.com/blog/wp-content/uploads/2019/01/react-pod-dev-server-1024x550.png" alt="Log of the running pod" width="640" height="344" /></a></p>
+
+<p>Of course, this doesn’t really matter unless we can sync our local code with the code that is being watched on our remote cluster.</p>
+<h3>Remote and local sync</h3>
+<p>Luckily, we can use <code>nodeshift</code> again to help us out. We can use the <code>watch</code> command.</p>
+
+<p>After we run the command to deploy our application’s development server, we can then run this command:</p>
+<pre>$ npx nodeshift watch
+</pre>
+<p>This will connect to the running pod we just created and sync our local files with our remote cluster, while also watching our local system for changes.</p>
+
+<p>So if you were to update the <code>src/App.js</code> file, that change will be detected and copied to the remote cluster, and the running development server will then refresh the browser.</p>
+
+<p>For completeness, here are the full commands:</p>
+<pre>$ npx nodeshift --strictSSL=false --dockerImage=nodeshift/ubi8-s2i-web-app --build.env YARN_ENABLED=true --expose --deploy.env NPM_RUN="yarn start" --deploy.port 3000
+
+$ npx nodeshift watch --strictSSL=false
+</pre>
+<p>The <code>watch</code> command is an abstraction on top of the <code>oc rsync</code> command. To learn more about how that works, <a href="https://docs.okd.io/latest/dev_guide/copy_files_to_container.html" target="_blank" rel="noopener noreferrer">check it out here</a>.</p>
+
+<p>Even though the example we saw was using React, this technique also works with other frameworks. You just need to change the <code>NPM_RUN</code> environment variable.</p>
+<h2>Conclusion</h2>
+<p>In this 3 part series, we saw how to deploy modern web applications to OpenShift in a few ways.</p>
+
+<p><a href="https://developers.redhat.com/blog/2018/10/04/modern-web-apps-openshift-part-1/" target="_blank" rel="noopener noreferrer">In part one,</a> we saw how to get started quickly with the new Web App S2I Image.</p>
+
+<p><a href="https://developers.redhat.com/blog/2018/10/23/modern-web-applications-on-openshift-part-2-using-chained-builds/" target="_blank" rel="noopener noreferrer">Part 2 dove a little deeper</a> into how the S2I image worked and how to use chained builds.</p>
+
+<p>This last part was a brief overview of how you can run a development server on OpenShift, and the next talks about <a href="https://developers.redhat.com/blog/2020/04/27/modern-web-applications-on-openshift-part-4-openshift-pipelines/">OpenShift Pipelines and how this tool can be used as an alternative to a chained build</a>.</p>
+<h2>Additional resources</h2>
+<ul>
+  <li><a href="https://developers.redhat.com/books/deploying-openshift/">Deploying to OpenShift: a guide for impatient developers</a> (free ebook)</li>
+  <li><a href="https://developers.redhat.com/blog/2018/06/11/container-native-nodejs-istio-rhoar/" rel="bookmark">Building Container-Native Node.js Applications with Red Hat OpenShift Application Runtimes and Istio</a></li>
+  <li><a href="https://developers.redhat.com/blog/2018/05/15/debug-your-node-js-application-on-openshift-with-chrome-devtools/" rel="bookmark">How to Debug Your Node.js Application on OpenShift with Chrome DevTools</a></li>
+  <li><a href="https://developers.redhat.com/blog/2018/04/16/zero-express-openshift-3-commands/" rel="bookmark">Zero to Express on OpenShift in Three Commands</a></li>
+  <li><a href="https://developers.redhat.com/blog/2018/03/12/rhoar-nodejs-annoucement/" rel="bookmark">Announcing: Node.js General Availability in Red Hat OpenShift Application Runtimes</a></li>
+  <li><a href="https://developers.redhat.com/blog/2018/12/21/monitoring-node-js-applications-on-openshift-with-prometheus/" rel="bookmark">Monitoring Node.js Applications on OpenShift with Prometheus</a></li>
+  <li>Other articles on <a href="https://developers.redhat.com/topics/kubernetes/">OpenShift and Kubernetes</a></li>
+</ul>
+
+  </div>
+
+  
+</div>
+  </div>
+
+  <div class="content-slim project-footer">
+  <div class="footer-section">
+    <div class="logo-wrapper">
+      <a href="/"><img src="/assets/images/nodeshift_logo.png" class="project-logo" title="NodeShift"></a>
+    </div>
+  </div>
+  <div class="grid-wrapper">
+    <div class="grid__item width-4-12 footer-text">
+      <h6>NodeShift is Open Source</h6>
+      <p>NodeShift and its extensions are available under the <a href='https://www.apache.org/licenses/LICENSE-2.0' target='_blank'>Apache 2.0</a> or compatible license.<br/><br/>This website built with <a href='https://jekyllrb.com/' target='_blank'>Jekyll</a> is hosted on <a href='https://pages.github.com/' target='_blank'>Github Pages</a> and is completely open source. If you want to make it better, <a href='https://github.com/nodeshift/nodeshift.github.io' target='_blank'>fork</a> the website and show us what you’ve got.</p>
+    </div>
+
+    
+      <div class="width-6-12 width-12-12-m more-info">
+        <h6>Find more Red Hat Middleware Community Projects</h6>
+        <ul class="footer-links">
+          
+            <li><a href="https://www.apiman.io/" target="_blank">APIMan</a></li>
+          
+            <li><a href="http://arquillian.org" target="_blank">Arquillian</a></li>
+          
+            <li><a href="http://byteman.jboss.org/" target="_blank">Byteman</a></li>
+          
+            <li><a href="http://capedwarf.org/" target="_blank">CapeDwarf</a></li>
+          
+            <li><a href="https://github.com/alechenninger/chronicler" target="_blank">Chronicler</a></li>
+          
+            <li><a href="https://github.com/darcy-framework" target="_blank">Darcy</a></li>
+          
+            <li><a href="http://debezium.io/" target="_blank">Debezium</a></li>
+          
+            <li><a href="https://www.drools.org/" target="_blank">Drools</a></li>
+          
+            <li><a href="http://gatein.jboss.org/" target="_blank">GateIn</a></li>
+          
+            <li><a href="http://www.hawkular.org/" target="_blank">Hawkular</a></li>
+          
+            <li><a href="http://hawt.io/" target="_blank">Hawtio</a></li>
+          
+            <li><a href="http://hibernate.org/" target="_blank">Hibernate</a></li>
+          
+            <li><a href="http://www.infinispan.org/" target="_blank">Infinispan</a></li>
+          
+            <li><a href="https://devstudio.jboss.com/" target="_blank">JBoss DevStudio</a></li>
+          
+            <li><a href="http://forge.jboss.org/" target="_blank">JBoss Forge</a></li>
+          
+            <li><a href="https://github.com/jboss-logging" target="_blank">JBoss Logging</a></li>
+          
+            <li><a href="http://jbossremoting.jboss.org/" target="_blank">JBoss Remoting</a></li>
+          
+            <li><a href="https://www.jbpm.org/" target="_blank">jBPM</a></li>
+          
+            <li><a href="https://jsfunit.jboss.org/" target="_blank">JSFUnit</a></li>
+          
+            <li><a href="https://www.keycloak.org/" target="_blank">Keycloak</a></li>
+          
+            <li><a href="http://modcluster.io/" target="_blank">Mod_cluster</a></li>
+          
+            <li><a href="http://modeshape.jboss.org/" target="_blank">ModeShape</a></li>
+          
+            <li><a href="https://www.optaplanner.org/" target="_blank">OptaPlanner</a></li>
+          
+            <li><a href="https://picketbox.jboss.org/" target="_blank">Picketbox</a></li>
+          
+            <li><a href="https://quarkus.io/" target="_blank">Quarkus</a></li>
+          
+            <li><a href="http://resteasy.jboss.org/" target="_blank">RESTEasy</a></li>
+          
+            <li><a href="https://riftsaw.jboss.org/" target="_blank">Riftsaw</a></li>
+          
+            <li><a href="http://savara.jboss.org/" target="_blank">Savara</a></li>
+          
+            <li><a href="http://seamframework.org/" target="_blank">Seam</a></li>
+          
+            <li><a href="http://arquillian.org/" target="_blank">Shrinkwrap</a></li>
+          
+            <li><a href="http://snowdrop.jboss.org/" target="_blank">Snowdrop</a></li>
+          
+            <li><a href="https://switchyard.jboss.org/" target="_blank">Switchyard</a></li>
+          
+            <li><a href="https://tattletale.jboss.org/" target="_blank">Tattletale</a></li>
+          
+            <li><a href="http://teiid.jboss.org/" target="_blank">Teiid</a></li>
+          
+            <li><a href="http://wildfly-swarm.io/" target="_blank">WildFly Swarm</a></li>
+          
+            <li><a href="http://wise.jboss.org/" target="_blank">Wise</a></li>
+          
+            <li><a href="https://xnio.jboss.org/" target="_blank">XNIO</a></li>
+          
+        </ul>
+      </div>
+    
+  </div>
+</div>
+  <div class="content-slim redhat-footer">
+  <div class="grid-wrapper">
+    <span class="licence">
+      <i class="fab fa-creative-commons"></i><i class="fab fa-creative-commons-by"></i> <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank">CC by 3.0</a>
+      | <a href="https://www.redhat.com/en/about/privacy-policy">Red Hat Privacy Policy</a>
+    </span>
+    <span class="redhat">
+      a Red Hat sponsored project   
+    </span>
+    <span class="redhat-logo">
+      <a href="https://www.redhat.com/" target="_blank"><img src="/assets/images/redhat_reversed.svg"></a>
+    </span>
+  </div>
+</div>
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  <script type="text/javascript" src="/assets/javascript/mobile-nav.js"></script>
+<!--   <script type="text/javascript">
+    if (("undefined" !== typeof _satellite) && ("function" === typeof _satellite.pageBottom)) {
+        _satellite.pageBottom();
+    }
+  </script> -->
+  
+</body>
+
+</html>
